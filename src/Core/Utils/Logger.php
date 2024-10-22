@@ -11,6 +11,9 @@ class Logger
 {   
     private MonoLogger $logger;
 
+    /**
+     * Instantiate the Logger class
+     */
     public function __construct()
     {
         $this->logger = new MonoLogger('logger');
@@ -18,17 +21,28 @@ class Logger
         $this->logger->pushHandler(new StreamHandler(__DIR__ . '/../../../storage/logs/app.log', Level::Debug));
     }
 
+    /**
+     * Create a new instance of the the Logger class
+     * and return the MonoLogger
+     * 
+     * @return MonoLogger
+     */
     public static function create()
     {
         return (new self())->logger;
     }
 
-    public function createLogFile()
+    /**
+     * Create a new log file if not already created
+     * 
+     * @return void
+     */
+    public function createLogFile(): void
     {   
         $file = __DIR__ . '/../../../storage/logs/app.log';
         
         if(!file_exists($file)){
-            return touch($file, time());
+            touch($file, time());
         }
     }
 }

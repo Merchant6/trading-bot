@@ -55,7 +55,7 @@ class PriceFetcher
                         'ticker' => $priceData->symbol,
                         'price' => $priceData->price,
                     ];
-                    
+                    Logger::create()->info('Hello');
                     $callable($priceDataArray);
 
             }, function (\Exception $exception) use ($callable) {
