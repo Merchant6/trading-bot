@@ -1,7 +1,6 @@
 <?php
 
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\OrderBook;
-use Merchant\TradingBot\Core\Utils\Logger;
+use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\KLineData;
 use React\EventLoop\Loop;
 
 require __DIR__ . "/vendor/autoload.php";
@@ -14,14 +13,13 @@ $dotenv->load();
 $loop = Loop::get();
 
 //Core Logic goes here
-$orderBook = new OrderBook($loop, [
-    'limit' => 10,
+$KLineData = new KLineData($loop, [
     'symbol' => 'BTCUSDT',
-    'minPriceDiff' => 10,
+    'interval' => '3m',
+    'limit' => '10',
 ]);
-
-$orderBook->details(function ($details) {
-    echo json_encode($details, JSON_PRETTY_PRINT);
+$KLineData->details(function ($data) {
+    echo json_encode($data, JSON_PRETTY_PRINT);
 });
 
 //Run the event loop
