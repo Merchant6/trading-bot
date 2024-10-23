@@ -25,11 +25,22 @@ class Logger
      * Create a new instance of the the Logger class
      * and return the MonoLogger
      * 
-     * @return MonoLogger
+     * @return self
      */
     public static function create()
     {
-        return (new self())->logger;
+        return new self();
+    }
+
+    public function info(string $message)
+    {
+        $stackTrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
+
+        $formattedTrace = array_map(function ($trace) {
+            return "{$trace['file']}:{$trace['line']} - {$trace['function']}";
+        }, $stackTrace);
+
+        $this->logger->info($message, ['stack_trace' => $formattedTrace]);
     }
 
     /**

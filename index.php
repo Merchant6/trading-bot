@@ -1,6 +1,6 @@
 <?php
 
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\PriceFetcher;
+use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\OrderBook;
 use Merchant\TradingBot\Core\Utils\Logger;
 use React\EventLoop\Loop;
 
@@ -14,9 +14,14 @@ $dotenv->load();
 $loop = Loop::get();
 
 //Core Logic goes here
-$fetcher = new PriceFetcher($loop, 'BTCUSDT');
-$fetcher->fetch(function ($priceData) {
-    echo json_encode($priceData, JSON_PRETTY_PRINT);
+$orderBook = new OrderBook($loop, [
+    'limit' => 10,
+    'symbol' => 'BTCUSDT',
+    'minPriceDiff' => 10,
+]);
+
+$orderBook->details(function ($details) {
+    echo json_encode($details, JSON_PRETTY_PRINT);
 });
 
 //Run the event loop

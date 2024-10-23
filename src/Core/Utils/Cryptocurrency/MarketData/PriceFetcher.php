@@ -1,6 +1,6 @@
 <?php
 
-namespace Merchant\TradingBot\Core\Utils\Cryptocurrency;
+namespace Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData;
 
 use Merchant\TradingBot\Core\Utils\Logger;
 use Psr\Http\Message\ResponseInterface;
@@ -18,7 +18,10 @@ class PriceFetcher
     private int|float|string $pollInterval = 5;
 
     /**
-     * Instantiate the class
+     * Instantiate the PriceFetcher class
+     * 
+     * @param \React\EventLoop\LoopInterface $loop
+     * @param string $symbol
      */
     public function __construct(
         private LoopInterface $loop, 
@@ -48,18 +51,18 @@ class PriceFetcher
     public function fetch(callable $callable): void
     {
         $this->loop->addPeriodicTimer($this->pollInterval, function () use ($callable) {
-            $this->http->get($this->marketPriceUrl)->then(function (ResponseInterface $response)  use($callable) {
+            $this->http->get($this->marketPriceUrl)->then(function (ResponseInterface $response)  use ($callable) {
                 $priceData = json_decode($response->getBody());
 
                     $priceDataArray = [
                         'ticker' => $priceData->symbol,
                         'price' => $priceData->price,
                     ];
-                    Logger::create()->info('Hello');
+                    
                     $callable($priceDataArray);
 
             }, function (\Exception $exception) use ($callable) {
-                Logger::create()->info("Error fetching price: " . $exception->getMessage() . "\n");
+                Logger::create()->info("Error fetching price: " . $exception->getMessage());
                 $this->fetch($callable);
             });
         });
