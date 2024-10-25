@@ -1,6 +1,6 @@
 <?php
 
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\KLineData;
+use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
 use React\EventLoop\Loop;
 
 require __DIR__ . "/vendor/autoload.php";
@@ -12,13 +12,13 @@ $dotenv->load();
 //Initializing the event loop
 $loop = Loop::get();
 
-//Core Logic goes here
-$KLineData = new KLineData($loop, [
-    'symbol' => 'BTCUSDT',
-    'interval' => '3m',
-    'limit' => '10',
+$klineContract = new ContractKLineData($loop, [
+    'pair' => 'BTCUSDT',
+    'contractType' => 'PERPETUAL',
+    'interval' => '1m',
+    'limit' => 10
 ]);
-$KLineData->details(function ($data) {
+$klineContract->details(function ($data) {
     echo json_encode($data, JSON_PRETTY_PRINT);
 });
 

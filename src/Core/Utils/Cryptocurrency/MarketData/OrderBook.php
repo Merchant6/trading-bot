@@ -9,9 +9,9 @@ use React\Http\Browser;
 
 class OrderBook
 {   
-    private Browser $http;
-    private string $orderBookUrl = '';
-    private int|string|float $pollInterval = 5;
+    public Browser $http;
+    public string $orderBookUrl = '';
+    public int|string|float $pollInterval = 5;
 
     /**
      * Instantiate the OrderBook class.
@@ -24,8 +24,8 @@ class OrderBook
      * } $options
      */
     public function __construct(
-            private LoopInterface $loop, 
-            private array $options
+            public LoopInterface $loop, 
+            public array $options
         )
     {
         $this->boot();
@@ -42,7 +42,7 @@ class OrderBook
 
         $limit = $this->options['limit'];
         $symbol = $this->options['symbol'];
-        $this->orderBookUrl = $_ENV['BINANCE_API_URL'] . "/api/v3/depth?" . "limit=$limit&symbol=$symbol";
+        $this->orderBookUrl = $_ENV['BINANCE_API_URL'] . "/fapi/v1/depth?" . "limit=$limit&symbol=$symbol";
         $this->pollInterval = $_ENV['PRICE_FETCH_INTERVAL'];
     }
 

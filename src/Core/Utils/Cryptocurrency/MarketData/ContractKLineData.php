@@ -7,8 +7,8 @@ use Psr\Http\Message\ResponseInterface;
 use React\EventLoop\LoopInterface;
 use React\Http\Browser;
 
-class KLineData
-{   
+class ContractKLineData
+{
     public Browser $http;
     public string $KLineDataUrl = '';
     public int|string|float $pollInterval = 5;
@@ -17,7 +17,8 @@ class KLineData
      * Summary of __construct
      * @param \React\EventLoop\LoopInterface $loop
      * @param array{
-     *     symbol: string,
+     *     pair: string,
+     *     contractType: string
      *     interval: string,
      *     limit: int
      * } $options
@@ -34,27 +35,20 @@ class KLineData
      */
     public function boot(): void
     {   
-        $symbol = $this->options['symbol'];
+        $pair = $this->options['pair'];
+        $contractType = $this->options['contractType'];
         $interval = $this->options['interval'];
         $limit = $this->options['limit'];
 
-        $this->KLineDataUrl = $_ENV['BINANCE_API_URL'] . "/fapi/v1/klines?" . "symbol=$symbol&interval=$interval&limit=$limit";
+        $this->KLineDataUrl = $_ENV['BINANCE_API_URL'] . "/fapi/v1/continuousKlines?" . "pair=$pair&contractType=$contractType&interval=$interval&limit=$limit";
         $this->http = new Browser(loop: $this->loop);
         $this->pollInterval = $_ENV['PRICE_FETCH_INTERVAL'];
     }
 
-    /**
-     * Get the KLine details
-     * 
-     * @param callable $callback
-     * @return void
-     */
-    public function details(callable $callback): void
+    public function details($callback)
     {
         $this->loop->addPeriodicTimer($this->pollInterval, function () use($callback)  {
             $this->http->get($this->KLineDataUrl)->then(function (ResponseInterface $response) use($callback) {
-                $KLineData = json_decode($response->getBody());
-
                 $KLineData = json_decode($response->getBody(), true);
 
                 $kline = $KLineData[0];
@@ -69,7 +63,7 @@ class KLineData
                     'close_time' => $kline[6],            // Kline close time
                     'quote_asset_volume' => $kline[7],    // Quote asset volume
                     'number_of_trades' => $kline[8],      // Number of trades
-                    'taker_buy_base_volume' => $kline[9], // Taker buy base asset volume
+                    'taker_buy_base_volume' => $kline[9], // Taker buy volume
                     'taker_buy_quote_volume' => $kline[10], // Taker buy quote asset volume
                     'unused_field' => $kline[11],         // Unused field
                 ];

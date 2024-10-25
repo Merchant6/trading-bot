@@ -4,18 +4,14 @@ namespace Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData;
 
 use Merchant\TradingBot\Core\Utils\Logger;
 use Psr\Http\Message\ResponseInterface;
-use Ratchet\Client\Connector as RatchetConnector;
-use Ratchet\Client\WebSocket;
 use React\EventLoop\LoopInterface;
-use React\Socket\Connector as ReactConnector;
-use Psr\Http\Message\RequestInterface;
 use React\Http\Browser;
 
 class PriceFetcher
 {   
-    private string $marketPriceUrl = '';
-    private Browser $http;
-    private int|float|string $pollInterval = 5;
+    public string $marketPriceUrl = '';
+    public Browser $http;
+    public int|float|string $pollInterval = 5;
 
     /**
      * Instantiate the PriceFetcher class
@@ -24,8 +20,8 @@ class PriceFetcher
      * @param string $symbol
      */
     public function __construct(
-        private LoopInterface $loop, 
-        private string $symbol
+        public LoopInterface $loop, 
+        public string $symbol
     ) {
         $this->boot();
     }
@@ -36,7 +32,7 @@ class PriceFetcher
      */
     public function boot(): void
     {
-        $this->marketPriceUrl = $_ENV['BINANCE_API_URL'] . "/api/v3/ticker/price?symbol=" . $this->symbol;
+        $this->marketPriceUrl = $_ENV['BINANCE_API_URL'] . "/fapi/v2/ticker/price?symbol=" . $this->symbol;
         $this->http = new Browser(loop: $this->loop);
         $this->pollInterval = $_ENV['PRICE_FETCH_INTERVAL'];
     }
@@ -68,54 +64,4 @@ class PriceFetcher
         });
     }
 
-    // public function fetch()
-    // {
-    //     $binanceStreamUrl = $_ENV['BINANCE_STREAM_URL'] . "/{$this->symbol}@miniTicker";
-
-    //     $reactConnector = new ReactConnector($this->loop);
-    //     $connector = new RatchetConnector($this->loop, $reactConnector);
-
-    //     echo "Connecting to Binance WebSocket...\n";
-
-    //     // Create a connection to the WebSocket
-    //     $connector($binanceStreamUrl)->then(
-    //         function (WebSocket $conn) {
-    //             echo "Connected! Listening for price updates...\n";
-
-    //             // Listen for incoming messages
-    //             $conn->on('message', function ($message) {
-    //                 $priceData = json_decode($message);
-
-    //                 $priceDataArray = [
-    //                     'ticker' => $priceData->s,
-    //                     'price' => $priceData->c,
-    //                 ];
-
-    //                 echo json_encode($priceDataArray, JSON_PRETTY_PRINT);
-
-    //             });
-
-    //             // Handle ping/pong from the server
-    //             $this->loop->addPeriodicTimer(180, function () use ($conn) {
-    //                 echo "Sending ping\n";
-    //                 $conn->send("\x89\x00"); // Sending a ping frame
-    //             });
-
-    //             // Handle connection close
-    //             $conn->on('close', function ($code = null, $reason = null) {
-    //                 echo "Connection closed ({$code} - {$reason})\n";
-    //             });
-
-    //             // Reconnect after 24 hours
-    //             $this->loop->addTimer(86400, function () use ($conn) {
-    //                 echo "Disconnecting after 24 hours...\n";
-    //                 $conn->close();
-    //                 $this->fetch(); // Reconnect
-    //             });
-    //         },
-    //         function (\Exception $e) {
-    //             echo "Could not connect: {$e->getMessage()}\n";
-    //         }
-    //     );
-    // }
 }
