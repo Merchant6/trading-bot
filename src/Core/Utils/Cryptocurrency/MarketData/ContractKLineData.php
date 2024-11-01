@@ -29,7 +29,7 @@ class ContractKLineData
     }
 
     /**
-     * Boot the KLineData class
+     * Boot the ContractKLineData class
      * 
      * @return void
      */
@@ -45,6 +45,14 @@ class ContractKLineData
         $this->pollInterval = $_ENV['PRICE_FETCH_INTERVAL'];
     }
 
+    /**
+     * Get the KLine details of a specific
+     * contract type ['PERPETUAL', 
+     * CURRENT_QUARTER, NEXT_QUARTER]
+     * 
+     * @param callable $callback
+     * @return void
+     */
     public function details($callback)
     {
         $this->loop->addPeriodicTimer($this->pollInterval, function () use($callback)  {

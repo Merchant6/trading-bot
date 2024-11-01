@@ -5,7 +5,10 @@
     "autoload": {
         "psr-4": {
             "Merchant\\TradingBot\\": "src/"
-        }
+        },
+        "files": [
+            "src/Core/Helpers.php"
+        ]
     },
     "authors": [
         {

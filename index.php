@@ -1,6 +1,8 @@
 <?php
 
+use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\PlaceOrder;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
+use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\PriceFetcher;
 use React\EventLoop\Loop;
 
 require __DIR__ . "/vendor/autoload.php";
@@ -12,13 +14,19 @@ $dotenv->load();
 //Initializing the event loop
 $loop = Loop::get();
 
-$klineContract = new ContractKLineData($loop, [
-    'pair' => 'BTCUSDT',
-    'contractType' => 'PERPETUAL',
-    'interval' => '1m',
-    'limit' => 10
-]);
-$klineContract->details(function ($data) {
+// $order = new PlaceOrder($loop);
+// $order->execute([
+//     'symbol' => 'BTCUSDT',
+//     'side' => 'BUY',
+//     'type' => 'LIMIT',
+//     'timeInForce' => 'GTC',
+//     'quantity' => 0.25,
+//     'price' => 68939.9,
+//     'recvWindow' => 5000
+// ], 10);
+
+$fetcher = new PriceFetcher($loop, 'BTCUSDT');
+$fetcher->fetch(function ($data) {
     echo json_encode($data, JSON_PRETTY_PRINT);
 });
 

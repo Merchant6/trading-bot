@@ -3,6 +3,7 @@
 namespace Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData;
 
 use Merchant\TradingBot\Core\Utils\Logger;
+use Merchant\TradingBot\Core\Utils\PeriodicTimer;
 use Psr\Http\Message\ResponseInterface;
 use React\EventLoop\LoopInterface;
 use React\Http\Browser;
@@ -44,9 +45,30 @@ class PriceFetcher
      * @param callable $callable
      * @return void
      */
-    public function fetch(callable $callable): void
+    // public function fetch(callable $callable): void
+    // {
+    //     $this->loop->addPeriodicTimer($this->pollInterval, function () use ($callable) {
+    //         $this->http->get($this->marketPriceUrl)->then(function (ResponseInterface $response)  use ($callable) {
+    //             $priceData = json_decode($response->getBody());
+
+    //                 $priceDataArray = [
+    //                     'ticker' => $priceData->symbol,
+    //                     'price' => $priceData->price,
+    //                 ];
+                    
+    //                 $callable($priceDataArray);
+
+    //         }, function (\Exception $exception) use ($callable) {
+    //             Logger::create()->info("Error fetching price: " . $exception->getMessage());
+    //             $this->fetch($callable);
+    //         });
+    //     });
+    // }
+    public function fetch(callable $callable)
     {
-        $this->loop->addPeriodicTimer($this->pollInterval, function () use ($callable) {
+        $timer = new PeriodicTimer($this->loop, $this->pollInterval);
+
+        $timer->start(function () use($callable) {
             $this->http->get($this->marketPriceUrl)->then(function (ResponseInterface $response)  use ($callable) {
                 $priceData = json_decode($response->getBody());
 
