@@ -6,3 +6,9 @@
 .env
 .env.backup
 .env.production
+/.phpunit.cache
+.phpunit.result.cache
+/.fleet
+/.idea
+/.vscode
+/.zed

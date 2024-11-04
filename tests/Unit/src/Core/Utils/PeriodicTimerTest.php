@@ -48,4 +48,20 @@ class PeriodicTimerTest extends TestCase
         
         $this->assertSame($timerMock, $timer->getTimer());
     }
+
+    public function testGetTimerShouldReturnTimerInterface()
+    {
+        $timerMock = $this->createMock(TimerInterface::class);
+
+        $this->loop->expects($this->once())
+            ->method('addPeriodicTimer')
+            ->with($this->interval, $this->isType('callable'))
+            ->willReturn($timerMock);
+
+        $timer = new PeriodicTimer($this->loop, $this->interval);
+        $timer->start(fn() => '');
+
+        $this->assertSame($timerMock, $timer->getTimer());
+
+    }
 }

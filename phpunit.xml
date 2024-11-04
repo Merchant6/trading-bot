@@ -8,7 +8,10 @@
   failOnRisky="true"
   failOnEmptyTestSuite="false"
   beStrictAboutOutputDuringTests="true"
-  verbose= "true"
+  verbose="true"
+  convertErrorsToExceptions="true"
+  convertNoticesToExceptions="true"
+  convertWarningsToExceptions="true"
 >
   <testsuites>
         <testsuite name="Unit">
