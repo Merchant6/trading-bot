@@ -45,25 +45,6 @@ class PriceFetcher
      * @param callable $callable
      * @return void
      */
-    // public function fetch(callable $callable): void
-    // {
-    //     $this->loop->addPeriodicTimer($this->pollInterval, function () use ($callable) {
-    //         $this->http->get($this->marketPriceUrl)->then(function (ResponseInterface $response)  use ($callable) {
-    //             $priceData = json_decode($response->getBody());
-
-    //                 $priceDataArray = [
-    //                     'ticker' => $priceData->symbol,
-    //                     'price' => $priceData->price,
-    //                 ];
-                    
-    //                 $callable($priceDataArray);
-
-    //         }, function (\Exception $exception) use ($callable) {
-    //             Logger::create()->info("Error fetching price: " . $exception->getMessage());
-    //             $this->fetch($callable);
-    //         });
-    //     });
-    // }
     public function fetch(callable $callable)
     {
         $timer = new PeriodicTimer($this->loop, $this->pollInterval);
