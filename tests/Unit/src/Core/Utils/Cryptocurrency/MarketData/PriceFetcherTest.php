@@ -56,7 +56,7 @@ class PriceFetcherTest extends TestCase
         $callbackExecuted = 0;
         $maxExecutions = 3;
 
-        $priceFetcher->fetch(function ($data) use (&$callbackExecuted, $maxExecutions) {
+        $priceFetcher->fetch(function ($data, $exception) use (&$callbackExecuted, $maxExecutions) {
             $this->assertEquals('BTCUSDT', $data['ticker']);
             $this->assertEquals('30000.00', $data['price']);
             $callbackExecuted++;
@@ -73,22 +73,36 @@ class PriceFetcherTest extends TestCase
         $this->assertEquals($maxExecutions, $callbackExecuted, "Callback was not executed the expected number of times.");
     }
 
-
-    // public function testFetchRetriesOnPromiseRejected()
+    // public function testFetchCallsCallbackOnPromiseRejected()
     // {
+    //     // Simulate a rejected promise with an exception
+    //     $exception = new \Exception('Network error');
     //     $deferred = new Deferred();
-    //     $deferred->reject(new \Exception("Network error"));
-    //     $this->browser->method('get')->willReturn($deferred->promise());
+    //     $deferred->reject($exception);
 
-    //     $this->logger->expects($this->once())
-    //         ->method('info')
-    //         ->with($this->stringContains('Error fetching price: Network error'));
+    //     $this->browser->method('get')->willReturn($deferred->promise());
 
     //     $priceFetcher = new PriceFetcher($this->loop, 'BTCUSDT');
     //     $priceFetcher->http = $this->browser;
 
-    //     $priceFetcher->fetch(function ($data) {
-    //         // Callback is not expected to be executed in this test
+    //     // Counter to track callback executions
+    //     $callbackExecuted = 0;
+    //     $maxExecutions = 3;
+
+    //     $priceFetcher->fetch(function ($data, $exception) use (&$callbackExecuted, $maxExecutions) {
+    //         $this->assertNull($data, "Data should be null on promise rejection.");
+    //         $callbackExecuted++;
+
+    //         // Stop the loop after a fixed number of executions
+    //         if ($callbackExecuted >= $maxExecutions) {
+    //             $this->loop->stop();
+    //         }
     //     });
+
+    //     // Run the event loop
+    //     $this->loop->run();
+
+    //     $this->assertEquals($maxExecutions, $callbackExecuted, "Callback was not executed the expected number of times.");
     // }
+
 }

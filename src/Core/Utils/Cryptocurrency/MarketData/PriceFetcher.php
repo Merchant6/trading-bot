@@ -58,10 +58,10 @@ class PriceFetcher
                         'price' => $priceData->price,
                     ];
                     
-                    $callable($priceDataArray);
+                    $callable($priceDataArray, null);
 
             }, function (\Exception $exception) use ($callable) {
-                Logger::create()->info("Error fetching price: " . $exception->getMessage());
+                $callable(null, $exception);
                 $this->fetch($callable);
             });
         });
