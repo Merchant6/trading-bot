@@ -27,11 +27,7 @@ $loop = Loop::get();
 // ], 10);
 
 $fetcher = new PriceFetcher($loop, 'BTCUSDT');
-$fetcher->fetch(function ($data, $exception) {
-    if($exception){
-        Logger::create()->info("Error fetching price: " . $exception->getMessage());
-    }
-
+$fetcher->fetch(function ($data) {
     echo json_encode($data, JSON_PRETTY_PRINT);
 });
 

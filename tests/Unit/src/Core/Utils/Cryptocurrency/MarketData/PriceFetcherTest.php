@@ -17,10 +17,7 @@ class PriceFetcherTest extends TestCase
     private Logger $logger;
 
     protected function setUp(): void
-    {
-        // Mock the LoopInterface
-        $this->loop = Loop::get();
-
+    {   
         // Mock the Browser (ReactPHP HTTP Client)
         $this->browser = $this->createMock(Browser::class);
 
@@ -39,70 +36,51 @@ class PriceFetcherTest extends TestCase
     }
 
     public function testFetchCallsCallbackOnPromiseFulfilled()
-    {
+    {   
+        $loop = Loop::get();
+
         // Mocked data to simulate Binance API response
         $priceData = json_encode(['symbol' => 'BTCUSDT', 'price' => '30000.00']);
         $this->response->method('getBody')->willReturn($priceData);
 
+        //Mock Browser
+        $browser = $this->browser;
+
         // Create a resolved promise for the mock browser
         $deferred = new Deferred();
         $deferred->resolve($this->response);
-        $this->browser->method('get')->willReturn($deferred->promise());
+        $browser->method('get')->willReturn($deferred->promise());
 
-        $priceFetcher = new PriceFetcher($this->loop, 'BTCUSDT');
-        $priceFetcher->http = $this->browser;
+        $priceFetcher = new PriceFetcher($loop, 'BTCUSDT');
+        $priceFetcher->http = $browser;
 
         // Counter to limit the number of invocations
         $callbackExecuted = 0;
         $maxExecutions = 3;
 
-        $priceFetcher->fetch(function ($data, $exception) use (&$callbackExecuted, $maxExecutions) {
+        $priceFetcher->fetch(function ($data) use (&$callbackExecuted, $maxExecutions, $loop) {
             $this->assertEquals('BTCUSDT', $data['ticker']);
             $this->assertEquals('30000.00', $data['price']);
             $callbackExecuted++;
 
             // Stop the loop after a fixed number of executions
             if ($callbackExecuted >= $maxExecutions) {
-                $this->loop->stop();
+                $loop->stop();
             }
         });
 
         // Run the event loop
-        $this->loop->run();
+        $loop->run();
 
         $this->assertEquals($maxExecutions, $callbackExecuted, "Callback was not executed the expected number of times.");
+
+        unset($loop);
+    }   
+
+    public function tearDown(): void
+    {
+        unset($this->loop);
+        unset($this->response);
+        unset($this->browser);
     }
-
-    // public function testFetchCallsCallbackOnPromiseRejected()
-    // {
-    //     // Simulate a rejected promise with an exception
-    //     $exception = new \Exception('Network error');
-    //     $deferred = new Deferred();
-    //     $deferred->reject($exception);
-
-    //     $this->browser->method('get')->willReturn($deferred->promise());
-
-    //     $priceFetcher = new PriceFetcher($this->loop, 'BTCUSDT');
-    //     $priceFetcher->http = $this->browser;
-
-    //     // Counter to track callback executions
-    //     $callbackExecuted = 0;
-    //     $maxExecutions = 3;
-
-    //     $priceFetcher->fetch(function ($data, $exception) use (&$callbackExecuted, $maxExecutions) {
-    //         $this->assertNull($data, "Data should be null on promise rejection.");
-    //         $callbackExecuted++;
-
-    //         // Stop the loop after a fixed number of executions
-    //         if ($callbackExecuted >= $maxExecutions) {
-    //             $this->loop->stop();
-    //         }
-    //     });
-
-    //     // Run the event loop
-    //     $this->loop->run();
-
-    //     $this->assertEquals($maxExecutions, $callbackExecuted, "Callback was not executed the expected number of times.");
-    // }
-
 }

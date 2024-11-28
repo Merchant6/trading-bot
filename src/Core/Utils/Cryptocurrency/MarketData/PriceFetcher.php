@@ -2,11 +2,13 @@
 
 namespace Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData;
 
+use Exception;
 use Merchant\TradingBot\Core\Utils\Logger;
 use Merchant\TradingBot\Core\Utils\PeriodicTimer;
 use Psr\Http\Message\ResponseInterface;
 use React\EventLoop\LoopInterface;
 use React\Http\Browser;
+use Throwable;
 
 class PriceFetcher
 {   
@@ -58,11 +60,17 @@ class PriceFetcher
                         'price' => $priceData->price,
                     ];
                     
-                    $callable($priceDataArray, null);
+                    $callable($priceDataArray);
 
-            }, function (\Exception $exception) use ($callable) {
-                $callable(null, $exception);
-                $this->fetch($callable);
+            })
+            ->catch(function (Throwable $exception) use($callable) {
+                
+                Logger::create()->info("Exception: " . $exception->getTraceAsString());
+
+                // Schedule the fetch method to run again after a delay (retry logic)
+                $this->loop->addTimer($this->pollInterval * 2, function () use ($callable) {
+                    $this->fetch($callable);
+                });
             });
         });
     }
