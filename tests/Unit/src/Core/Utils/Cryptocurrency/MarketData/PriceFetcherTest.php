@@ -11,7 +11,6 @@ use React\EventLoop\Loop;
 
 class PriceFetcherTest extends TestCase
 {
-    private LoopInterface $loop;
     private Browser $browser;
     private ResponseInterface $response;
     private Logger $logger;
@@ -24,21 +23,18 @@ class PriceFetcherTest extends TestCase
         // Mock the ResponseInterface
         $this->response = $this->createMock(ResponseInterface::class);
 
-        // Mock the Logger
-        $this->logger = $this->getMockBuilder(Logger::class)
-            ->disableOriginalConstructor()
-            ->onlyMethods(['info'])
-            ->getMock();
-
         //Setup ENV vars
         $_ENV['PRICE_FETCH_INTERVAL'] = 0.01;
         $_ENV['BINANCE_API_URL'] = 'https://testnet.binancefuture.com';
     }
 
+    /**
+     * @runInSeparateProcess
+     */
     public function testFetchCallsCallbackOnPromiseFulfilled()
     {   
         $loop = Loop::get();
-
+    
         // Mocked data to simulate Binance API response
         $priceData = json_encode(['symbol' => 'BTCUSDT', 'price' => '30000.00']);
         $this->response->method('getBody')->willReturn($priceData);
@@ -79,7 +75,6 @@ class PriceFetcherTest extends TestCase
 
     public function tearDown(): void
     {
-        unset($this->loop);
         unset($this->response);
         unset($this->browser);
     }

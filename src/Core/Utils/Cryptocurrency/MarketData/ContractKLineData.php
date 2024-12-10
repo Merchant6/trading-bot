@@ -77,9 +77,16 @@ class ContractKLineData
                 ];
                 
                 $callback($KLineDataArray);
-            }, function (\Exception $exception) use ($callback) {
+            })
+            ->catch(function ($exception) use($callback) {
+
+                //Log The Exception
                 Logger::create()->info("Error fetching price: " . $exception->getMessage());
-                $this->details($callback);
+                
+                // Schedule the fetch method to run again after a delay (retry logic)
+                $this->loop->addTimer($this->pollInterval * 2, function () use($callback) {
+                    $this->details($callback);
+                });
             });
         } );
     }
