@@ -80,6 +80,7 @@ class ContractKLineData
             })
             ->catch(function ($exception) use($callback) {
 
+                error_log($exception->getMessage());
                 //Log The Exception
                 Logger::create()->info("Error fetching price: " . $exception->getMessage());
                 

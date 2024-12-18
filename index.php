@@ -1,6 +1,7 @@
 <?php
 
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\PlaceOrder;
+use Merchant\TradingBot\Core\Utils\Cryptocurrency\Indicators\BollingerBands;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\PriceFetcher;
 use Merchant\TradingBot\Core\Utils\Logger;
@@ -15,21 +16,25 @@ $dotenv->load();
 //Initializing the event loop
 $loop = Loop::get();
 
-// $order = new PlaceOrder($loop);
-// $order->execute([
-//     'symbol' => 'BTCUSDT',
-//     'side' => 'BUY',
-//     'type' => 'LIMIT',
-//     'timeInForce' => 'GTC',
-//     'quantity' => 0.25,
-//     'price' => 68939.9,
-//     'recvWindow' => 5000
-// ], 10);
+$symbol = 'BTCUSDT';
+$contractType = 'PERPETUAL';
+$interval = '5m';
+$limit = 500;
+$pollInterval = 2;
 
-$fetcher = new PriceFetcher($loop, 'BTCUSDT');
-$fetcher->fetch(function ($data) {
-    echo json_encode($data, JSON_PRETTY_PRINT);
+// Step 1: Fetch Historical KLine Data
+$klineData = new ContractKLineData($loop, [
+    'pair' => $symbol,
+    'contractType' => $contractType,
+    'interval' => $interval,
+    'limit' => $limit,
+]);
+
+$klineData->details(function ($data) {
+    var_dump($data);
 });
+
+
 
 //Run the event loop
 $loop->run();
