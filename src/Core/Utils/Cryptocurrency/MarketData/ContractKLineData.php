@@ -16,12 +16,12 @@ class ContractKLineData
     /**
      * Summary of __construct
      * @param \React\EventLoop\LoopInterface $loop
-     * @param array{
+     * @param array $options {
      *     pair: string,
      *     contractType: string
-     *     interval: string,
+     *     interval: int,
      *     limit: int
-     * } $options
+     * }
      */
     public function __construct(public LoopInterface $loop, public array $options)
     {
@@ -59,24 +59,24 @@ class ContractKLineData
             $this->http->get($this->KLineDataUrl)->then(function (ResponseInterface $response) use($callback) {
                 $KLineData = json_decode($response->getBody(), true);
 
-                $kline = $KLineData[0];
-
-                $KLineDataArray = [
-                    'open_time' => $kline[0],             // Kline open time
-                    'open_price' => $kline[1],            // Open price
-                    'high_price' => $kline[2],            // High price
-                    'low_price' => $kline[3],             // Low price
-                    'close_price' => $kline[4],           // Close price
-                    'volume' => $kline[5],                // Volume
-                    'close_time' => $kline[6],            // Kline close time
-                    'quote_asset_volume' => $kline[7],    // Quote asset volume
-                    'number_of_trades' => $kline[8],      // Number of trades
-                    'taker_buy_base_volume' => $kline[9], // Taker buy volume
-                    'taker_buy_quote_volume' => $kline[10], // Taker buy quote asset volume
-                    'unused_field' => $kline[11],         // Unused field
-                ];
+                $parsedKlineData = array_map(function ($kline) {
+                    return [
+                        'open_time' => $kline[0],             // Kline open time
+                        'open_price' => $kline[1],            // Open price
+                        'high_price' => $kline[2],            // High price
+                        'low_price' => $kline[3],             // Low price
+                        'close_price' => $kline[4],           // Close price
+                        'volume' => $kline[5],                // Volume
+                        'close_time' => $kline[6],            // Kline close time
+                        'quote_asset_volume' => $kline[7],    // Quote asset volume
+                        'number_of_trades' => $kline[8],      // Number of trades
+                        'taker_buy_base_volume' => $kline[9], // Taker buy volume
+                        'taker_buy_quote_volume' => $kline[10], // Taker buy quote asset volume
+                        'unused_field' => $kline[11],         // Unused field
+                    ];
+                }, $KLineData);
                 
-                $callback($KLineDataArray);
+                $callback($parsedKlineData);
             })
             ->catch(function ($exception) use($callback) {
 
