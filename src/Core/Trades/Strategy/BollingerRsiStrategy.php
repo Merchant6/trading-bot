@@ -11,9 +11,6 @@ use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
  */
 class BollingerRsiStrategy
 {   
-    public string $symbol = '';
-    public string $interval = '5m';
-    public int $limit = 100;
     public int $leverage = 10;
     public int $period = 20;
     public int $stdDev = 2;
@@ -51,9 +48,6 @@ class BollingerRsiStrategy
      */
     public function boot()
     {
-        $this->symbol = $this->options['symbol'] ?? $this->symbol;
-        $this->interval = $this->options['interval'] ?? $this->interval;
-        $this->limit = $this->options['limit'] ?? $this->limit;
         $this->leverage = $this->options['leverage'] ?? $this->leverage;
         $this->period = $this->options['period'] ?? $this->period;
         $this->stdDev = $this->options['stdDev'] ?? $this->stdDev;
