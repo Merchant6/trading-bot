@@ -80,9 +80,8 @@ class ContractKLineData
             })
             ->catch(function ($exception) use($callback) {
 
-                error_log($exception->getMessage());
                 //Log The Exception
-                Logger::create()->info("Error fetching price: " . $exception->getMessage());
+                Logger::create()->info("Error fetching Contact KLine Data: " . $exception->getMessage());
                 
                 // Schedule the fetch method to run again after a delay (retry logic)
                 $this->loop->addTimer($this->pollInterval * 2, function () use($callback) {

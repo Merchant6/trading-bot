@@ -17,11 +17,11 @@ class OrderBook
      * Instantiate the OrderBook class.
      *
      * @param \React\EventLoop\LoopInterface $loop
-     * @param array{
+     * @param array $options {
      *     limit: int|string,  // Limit for the number of results to fetch
      *     symbol: string,     // The trading pair symbol (e.g., 'BTCUSDT')
      *     minPriceDiff: float // Minimum price difference for filtering bids/asks
-     * } $options
+     * }
      */
     public function __construct(
             public LoopInterface $loop, 
@@ -79,7 +79,7 @@ class OrderBook
             });
         } );
     }
-
+    
     /**
      * Filter the bids and ask according to the minimum
      * price difference
@@ -94,10 +94,10 @@ class OrderBook
         $previousDataPrice = null;
 
         foreach ($data as $item) {
-            $price = (float) $item[0]; // Price is in the first element of the array
-            $quantity = (float) $item[1]; // Quantity is in the second element of the array
+            $price = (float) $item[0];
+            $quantity = (float) $item[1];
 
-            if ($previousDataPrice === null || abs($price - $previousDataPrice) >= $minDifference) {
+            if ($previousDataPrice === null || $price <= $previousDataPrice - $minDifference) {
                 $filteredData[] = ['price' => $price, 'quantity' => $quantity];
                 $previousDataPrice = $price;
             }
@@ -105,4 +105,5 @@ class OrderBook
 
         return $filteredData;
     }
+
 }

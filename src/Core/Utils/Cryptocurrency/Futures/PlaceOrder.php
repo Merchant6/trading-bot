@@ -6,15 +6,35 @@ use Merchant\TradingBot\Core\Utils\Logger;
 use Psr\Http\Message\ResponseInterface;
 use React\EventLoop\LoopInterface;
 use React\Http\Browser;
+use React\Promise\PromiseInterface;
 
 class PlaceOrder
 {   
+    public int|float $price = 0;
+    public int|float $quantity = 0;
     public string $setLeverageUrl = '';
     public string $placeOrderUrl = '';
     public Browser $http;
     public array $headers = [];
 
-    public function __construct(public LoopInterface $loop)
+    /**
+     * Setup the order for derivative trading
+     * @param \React\EventLoop\LoopInterface $loop
+     * @param array $params{
+     *     symbol: string
+     *     side: string
+     *     type: string
+     *     timeInForce: string
+     *     quantity: int|float
+     *     recvWindow: int
+     * }
+     * @param int $leverage
+     */
+    public function __construct(
+        public LoopInterface $loop, 
+        public array $params, 
+        public int $leverage = 10
+    )
     {
         $this->boot();
     }
@@ -31,24 +51,15 @@ class PlaceOrder
 
     /**
      * Place a derivatives(futures) order
-     * 
-     * @param array{
-     *     symbol: string
-     *     side: string
-     *     type: string
-     *     timeInForce: string
-     *     quantity: int|float
-     *     price: int|float
-     *     recvWindow: int
-     * } $params
-     * @return void
+     *  
+     * @return PromiseInterface
      */
-    public function execute(array $params, int $leverage)
+    public function execute()
     {   
-        $this->setLeverageAndPlaceOrder([
-            'symbol' => $params['symbol'],
-            'leverage' => $leverage,
-        ], $params);
+        return $this->setLeverageAndPlaceOrder([
+            'symbol' => $this->params['symbol'],
+            'leverage' => $this->leverage,
+        ], $this->params);
 
     }
 
@@ -56,14 +67,13 @@ class PlaceOrder
     {   
         $options['timestamp'] = time() * 1000;
         $options['signature'] = hmac(http_build_query($options), $_ENV['BINANCE_SECRET_KEY']);
-        $this->http->post($this->setLeverageUrl, $this->headers, http_build_query($options))
+
+        return $this->http->post($this->setLeverageUrl, $this->headers, http_build_query($options))
             ->then(function (ResponseInterface $response) use ($params) {
 
                 if($response->getStatusCode() == 200){
-                    $this->placeOrder($params);
+                    return $this->placeOrder($params);
                 }
-                echo $response->getBody();
-
             }, function (\Exception $exception) {
                 Logger::create()->info('Error setting leverage: ' . $exception->getMessage());
         });
@@ -73,10 +83,14 @@ class PlaceOrder
     {   
         $params['timestamp'] = time() * 1000;
         $params['signature'] = hmac(http_build_query($params), $_ENV['BINANCE_SECRET_KEY']);
-
-        $this->http->post($this->placeOrderUrl, $this->headers, http_build_query($params))
+        $params['price'] = $this->price;
+        $params['quantity'] = $this->quantity;
+        
+        return $this->http->post($this->placeOrderUrl, $this->headers, http_build_query($params))
             ->then(function (ResponseInterface $response) {
-                echo $response->getBody();
+                
+                return $response;
+
             }, function (\Exception $exception) {
                 Logger::create()->info('Error placing order: ' . $exception->getMessage());
         });
