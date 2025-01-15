@@ -132,7 +132,7 @@ class BollingerRsiStrategy
                             $priceDiff = abs($bestBid - $currentPrice);
             
                             // Calculate the quantity
-                            $balancePercentage = 50 / 100;
+                            $balancePercentage = 20 / 100;
                             $quantityWithLeverage = round(
                                 ($userAccountBalance * $balancePercentage * $this->placeOrder->leverage) / $currentPrice,
                                 3
@@ -146,7 +146,7 @@ class BollingerRsiStrategy
                                     var_dump($response);
                                 })
                                 ->catch(function (Exception $e) {
-                                    echo $e->getMessage();
+                                    echo "Issue from placeOrder catch: " . $e->getMessage() . "\n";
                                 });
                         });
                     },
