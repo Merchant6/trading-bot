@@ -2,6 +2,7 @@
 
 use Merchant\TradingBot\Core\Trades\Strategy\BollingerRsiStrategy;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\AccountBalance;
+use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\OpenOrders;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\PlaceOrder;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Indicators\BollingerBands;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
@@ -53,12 +54,19 @@ $placeOrder = new PlaceOrder($loop, [
 ], 
 $leverage);
 
+$logger = new Logger();
+
 $bbRsi = new BollingerRsiStrategy(
     $Kline, 
     $placeOrder,
     $orderBook,
+    $logger,
+    [
+        'symbol' => $symbol
+    ]
 );
 $bbRsi->execute();
+
 
 // Run the event loop
 $loop->run();

@@ -2,87 +2,70 @@
 
 namespace Merchant\TradingBot\Core\Trades\Strategy;
 
-use Exception;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\AccountBalance;
+use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\OpenOrders;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\PlaceOrder;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Indicators\BollingerBands;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\OrderBook;
+use Psr\Log\LoggerInterface;
 use Psr\Http\Message\ResponseInterface;
-use React\EventLoop\Loop;
-
-use function React\Async\await;
+use Throwable;
 
 /**
- * Using Bollinger Bands And Rsi to
- * trade given cryptocurrency pair
+ * Implements Bollinger Bands and RSI trading strategy.
  */
 class BollingerRsiStrategy
-{   
+{
     /**
-     * Period for Bollinger Bands 
+     * Period for Bollinger Bands.
      * @var int
      */
     public int $period = 20;
 
     /**
-     * Standard Deviation for Bollinger Bands
+     * Standard deviation for Bollinger Bands.
      * @var int
      */
     public int $stdDev = 2;
 
     /**
-     * Constructor for initializing trading parameters.
-     * 
-     * @param ContractKLineData $contractKLineData
-     * An instance of ContractKLineData for polling 
-     * and processing K-line (candlestick) data, 
-     * providing parsed historical data for trading 
-     * strategies.
-     * 
-     * @param array $options {
-     *     The `$options` array allows fine-tuned control over the trading setup,
-     *     setup leverage and bollinger bands options.
+     * Constructor to initialize trading parameters.
      *
-     *     @type int    $leverage The leverage to use for trading, defaults to 10.
-     *     @type int    $period Define period for Bollinger Bands
-     *     @type int    $stdDev Define standard Deviation for Bollinger Bands
-     * }
-     * 
+     * @param ContractKLineData $contractKLineData An instance for processing K-line data.
+     * @param PlaceOrder $placeOrder Object to handle order placement.
+     * @param OrderBook $orderBook Object to handle order book data.
+     * @param LoggerInterface $logger Logger for logging messages.
+     * @param array $options Configuration options for the strategy.
      */
     public function __construct(
-        public ContractKLineData $contractKLineData,
-        public PlaceOrder $placeOrder,
-        public OrderBook $orderBook,
-        public array $options = []
-    )
-    {
+        private ContractKLineData $contractKLineData,
+        private PlaceOrder $placeOrder,
+        private OrderBook $orderBook,
+        private LoggerInterface $logger,
+        private array $options = []
+    ) {
         $this->boot();
     }
 
     /**
-     * Boot the BollingerRsiStrategy class
-     * @return void
+     * Initializes the strategy with options.
      */
-    public function boot()
-    {   
+    private function boot(): void
+    {
         $this->period = $this->options['period'] ?? $this->period;
         $this->stdDev = $this->options['stdDev'] ?? $this->stdDev;
-    }   
+    }
 
     /**
-     * Execute the Bollinger Bands and
-     * RSI strategy
-     * 
-     * @return void
+     * Executes the Bollinger Bands and RSI strategy.
      */
-    public function execute()
+    public function execute(): void
     {
         $this->contractKLineData->details(function (array $data) {
-            
             $closePrices = array_column($data, 'close_price');
 
-            //Set Bollinger Bands Options
+            // Calculate Bollinger Bands
             $bbOptions = [
                 'prices' => $closePrices,
                 'period' => $this->period,
@@ -92,72 +75,101 @@ class BollingerRsiStrategy
             $bb = new BollingerBands();
             $bands = $bb->calculate($bbOptions, TRADER_MA_TYPE_SMA);
 
-            $upperBand = round(end($bands['UpperBand']), 3); // The most recent upper band value
-            $lowerBand = round(end($bands['LowerBand']), 3); // The most recent lower band value
-            $middleBand = round(end($bands['MiddleBand']), 3); // The most recent middle band value
-            $currentPrice = round(end($closePrices), 3); // Current price
+            $upperBand = round(end($bands['UpperBand']), 3);
+            $lowerBand = round(end($bands['LowerBand']), 3);
+            $middleBand = round(end($bands['MiddleBand']), 3);
+            $currentPrice = round(end($closePrices), 3);
 
-            $lastTwoCandlePrices = array_slice($closePrices, -2); 
+            $lastTwoCandlePrices = array_slice($closePrices, -2);
 
             if (
-                count($lastTwoCandlePrices) === 2 && 
-                $lastTwoCandlePrices[0] > $lowerBand && 
+                count($lastTwoCandlePrices) === 2 &&
+                $lastTwoCandlePrices[0] > $lowerBand &&
                 $lastTwoCandlePrices[1] > $lowerBand
-            ) { 
-
-                $accountBalance = new AccountBalance();
-                $balancePromise = $accountBalance->getBalance();
-
-                $balancePromise->then(
-                    function (?float $userAccountBalance) use ($currentPrice) {
-                       
-                        if (!$userAccountBalance) {
-                            echo "Not enough balance in the wallet\n";
-                            return;
-                        }
-    
-                        $this->orderBook->details(function (array $orderBookData) use ($currentPrice, $userAccountBalance) {
-                            
-                            if (empty($orderBookData)) {
-                                echo "Not enough bids in the order book!\n";
-                                return;
-                            }
-
-                            $bestAsk = $orderBookData['asks'][0]['price'];
-                            $bestBid = $orderBookData['bids'][0]['price'];
-            
-                            /**
-                             * Price Difference Between Highest Bid Price And Market Price
-                             */
-                            $priceDiff = abs($bestBid - $currentPrice);
-            
-                            // Calculate the quantity
-                            $balancePercentage = 20 / 100;
-                            $quantityWithLeverage = round(
-                                ($userAccountBalance * $balancePercentage * $this->placeOrder->leverage) / $currentPrice,
-                                3
-                            );
-            
-                            // Place Order
-                            $price = $this->placeOrder->price = $currentPrice;
-                            $quantity = $this->placeOrder->quantity = $quantityWithLeverage;
-                            $this->placeOrder->execute()
-                                ->then(function (ResponseInterface $response) {
-                                    var_dump($response);
-                                })
-                                ->catch(function (Exception $e) {
-                                    echo "Issue from placeOrder catch: " . $e->getMessage() . "\n";
-                                });
-                        });
-                    },
-                    function (Exception $e) {
-                        echo "Error fetching account balance: " . $e->getMessage() . "\n";
-                    }
-                );
-
-            } else {
-                echo "No trade signal. Current Price: $currentPrice\n";
+            ) {
+                $this->processTrade($currentPrice);
             }
         });
+    }
+
+    /**
+     * Processes trade logic when conditions are met.
+     *
+     * @param float $currentPrice The current price of the asset.
+     */
+    private function processTrade(float $currentPrice): void
+    {
+        $accountBalance = new AccountBalance();
+
+        $accountBalance->getBalance()->then(
+            function (?float $userAccountBalance) use ($currentPrice) {
+                if (!$userAccountBalance || $userAccountBalance <= 0) {
+                    $this->logger->error("Insufficient account balance.");
+                    return;
+                }
+
+                $this->orderBook->details(function (array $orderBookData) use ($currentPrice, $userAccountBalance) {
+                    if (empty($orderBookData)) {
+                        $this->logger->error("Order book data is empty or unavailable.");
+                        return;
+                    }
+
+                    $bestAsk = $orderBookData['asks'][0]['price'];
+                    $bestBid = $orderBookData['bids'][0]['price'];
+
+                    $priceDiff = abs($bestBid - $currentPrice);
+
+                    $balancePercentage = 20 / 100;
+                    $quantityWithLeverage = round(
+                        ($userAccountBalance * $balancePercentage * $this->placeOrder->leverage) / $currentPrice,
+                        3
+                    );
+
+                    $this->checkAndPlaceOrder($currentPrice, $quantityWithLeverage);
+                });
+            },
+            function (Throwable $e) {
+                $this->logger->error("Error fetching account balance: " . $e->getMessage(), ['exception' => $e]);
+            }
+        );
+    }
+
+    /**
+     * Checks for open orders and places a new order if conditions are met.
+     *
+     * @param float $currentPrice The current price of the asset.
+     * @param float $quantityWithLeverage The calculated order quantity with leverage.
+     */
+    private function checkAndPlaceOrder(float $currentPrice, float $quantityWithLeverage): void
+    {
+        $openOrders = new OpenOrders();
+
+        $openOrders->queryOpenOrders([
+            'symbol' => $this->options['symbol'],
+            'timestamp' => time() * 1000,
+        ])->then(
+            function (array $openOrders) use ($currentPrice, $quantityWithLeverage) {
+                if (count($openOrders) > 0) {
+                    $this->logger->info("Open order already exists for the given symbol.");
+                    return;
+                }
+
+                $this->placeOrder->price = $currentPrice;
+                $this->placeOrder->quantity = $quantityWithLeverage;
+
+                $this->placeOrder->execute()
+                    ->then(
+                        function (ResponseInterface $response) {
+                            $this->logger->info("Order placed successfully.", ['response' => $response]);
+                        },
+                        function (Throwable $e) {
+                            $this->logger->error("Failed to place order: " . $e->getMessage(), ['exception' => $e]);
+                        }
+                    );
+            },
+            function (Throwable $e) {
+                $this->logger->error("Error querying open orders: " . $e->getMessage(), ['exception' => $e]);
+            }
+        );
     }
 }

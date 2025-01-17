@@ -34,7 +34,7 @@ class PlaceOrder
         ];
     }
 
-    public function execute()
+    public function execute(): PromiseInterface
     {
         return $this->setLeverageAndPlaceOrder([
             'symbol' => $this->params['symbol'],
@@ -42,7 +42,7 @@ class PlaceOrder
         ], $this->params);
     }
 
-    public function setLeverageAndPlaceOrder(array $options, array $params)
+    public function setLeverageAndPlaceOrder(array $options, array $params): PromiseInterface
     {
         $options['timestamp'] = time() * 1000;
         ksort($options);
@@ -71,7 +71,7 @@ class PlaceOrder
             );
     }
 
-    public function placeOrder(array $params)
+    public function placeOrder(array $params): PromiseInterface
     {
         // Format parameters properly
         $orderParams = [
