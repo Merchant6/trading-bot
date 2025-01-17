@@ -80,7 +80,7 @@ class BollingerRsiStrategy implements StrategyInterface
             $lowerBand = round(end($bands['LowerBand']), 3);
             $middleBand = round(end($bands['MiddleBand']), 3);
             $currentPrice = round(end($closePrices), 3);
-
+            
             $lastTwoCandlePrices = array_slice($closePrices, -2);
 
             if (
@@ -88,6 +88,7 @@ class BollingerRsiStrategy implements StrategyInterface
                 $lastTwoCandlePrices[0] > $lowerBand &&
                 $lastTwoCandlePrices[1] > $lowerBand
             ) {
+                
                 $this->processTrade($currentPrice);
             }
         });

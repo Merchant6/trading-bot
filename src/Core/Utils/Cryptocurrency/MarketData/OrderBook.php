@@ -38,7 +38,7 @@ class OrderBook
      */
     public function boot(): void
     {
-        $this->http = new Browser(loop: $this->loop);
+        $this->http = http();
 
         $limit = $this->options['limit'];
         $symbol = $this->options['symbol'];

@@ -27,7 +27,7 @@ class PlaceOrder
     {
         $this->setLeverageUrl = $_ENV['BINANCE_API_URL'] . "/fapi/v1/leverage";
         $this->placeOrderUrl = $_ENV['BINANCE_API_URL'] . "/fapi/v1/order";
-        $this->http = new Browser(loop: $this->loop);
+        $this->http = http();
         $this->headers = [
             'X-MBX-APIKEY' => $_ENV['BINANCE_API_KEY'],
             'Content-Type' => 'application/x-www-form-urlencoded'
