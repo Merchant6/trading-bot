@@ -2,6 +2,7 @@
 
 namespace Merchant\TradingBot\Core\Trades\Strategy;
 
+use Merchant\TradingBot\Core\Interfaces\StrategyInterface;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\AccountBalance;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\OpenOrders;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\PlaceOrder;
@@ -15,7 +16,7 @@ use Throwable;
 /**
  * Implements Bollinger Bands and RSI trading strategy.
  */
-class BollingerRsiStrategy
+class BollingerRsiStrategy implements StrategyInterface
 {
     /**
      * Period for Bollinger Bands.
@@ -97,7 +98,7 @@ class BollingerRsiStrategy
      *
      * @param float $currentPrice The current price of the asset.
      */
-    private function processTrade(float $currentPrice): void
+    public function processTrade(float $currentPrice): void
     {
         $accountBalance = new AccountBalance();
 
@@ -140,7 +141,7 @@ class BollingerRsiStrategy
      * @param float $currentPrice The current price of the asset.
      * @param float $quantityWithLeverage The calculated order quantity with leverage.
      */
-    private function checkAndPlaceOrder(float $currentPrice, float $quantityWithLeverage): void
+    public function checkAndPlaceOrder(float $currentPrice, float $quantityWithLeverage): void
     {
         $openOrders = new OpenOrders();
 
