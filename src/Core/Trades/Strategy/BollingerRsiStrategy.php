@@ -166,8 +166,10 @@ class BollingerRsiStrategy
                         ];
 
                         return $this->placeOrder->executeLimitOrder($orderParams)
-                            ->then(function ($response) use ($symbol) {
+                            ->then(function ($response) use ($symbol, $currentPrice, $quantityWithLeverage) {
                                 $this->logger->info("Order placed successfully for {$symbol}.", ['response' => $response]);
+                                
+                                $this->placeTakeProfitOrder($currentPrice, $symbol, $quantityWithLeverage);
                                 Timer\sleep(time: $this->cooldownPeriod)->then(fn() => $this->execute());
                             });
                     },
@@ -180,5 +182,44 @@ class BollingerRsiStrategy
             ->finally(function () {
                 $this->isOrderInProgress = false;
             });
+    }
+
+    public function placeTakeProfitOrder(float $entryPrice, string $symbol, float $quantity)
+    {
+        // Define profit percentage range
+        $minProfitPercentage = 1.08; // Minimum 8% profit
+        $maxProfitPercentage = 1.12; // Maximum 12% profit
+
+        // Randomly pick a profit percentage within the range
+        $profitPercentage = round(mt_rand($minProfitPercentage * 100, $maxProfitPercentage * 100) / 100, 2);
+
+        // Determine the take-profit price based on the order side
+        $side = 'SELL'; // Opposite side of the original order
+
+        $takeProfitPrice = round($entryPrice * $profitPercentage, 3);
+        $adjustedPrice = floor($takeProfitPrice / 0.01000000) * 0.01000000;
+        // Prepare the take profit order parameters
+        $takeProfitParams = [
+            'symbol' => $symbol,
+            'side' => $side,
+            'type' => 'TAKE_PROFIT',
+            'quantity' => $quantity,
+            'price' => $takeProfitPrice,
+            'stopPrice' => $takeProfitPrice, // Binance requires stopPrice for TAKE_PROFIT_LIMIT
+            'timeInForce' => 'GTC',
+            'recvWindow' => 5000,
+            'timestamp' => time() * 1000
+        ];
+
+        $this->placeOrder->executeTakeProfitOrder($takeProfitParams)->then(
+            function ($response) use ($symbol, $takeProfitPrice) {
+                $this->logger->info("Take profit order placed successfully for {$symbol} at {$takeProfitPrice}.", ['response' => $response]);
+                $this->isOrderInProgress = false;
+            },
+            function (Throwable $e) use ($symbol) {
+                $this->logger->error("Failed to place take profit order for {$symbol}: " . $e->getMessage(), ['exception' => $e]);
+                $this->isOrderInProgress = true;
+            }
+        );
     }
 }

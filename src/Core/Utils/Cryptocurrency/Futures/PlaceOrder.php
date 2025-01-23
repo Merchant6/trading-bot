@@ -39,6 +39,11 @@ class PlaceOrder
         ], $params);
     }
 
+    public function executeTakeProfitOrder(array $params)
+    {
+        return $this->placeOrder($params);
+    }
+
     public function setLeverageAndPlaceOrder(array $options, array $params): PromiseInterface
     {
         $options['timestamp'] = time() * 1000;
