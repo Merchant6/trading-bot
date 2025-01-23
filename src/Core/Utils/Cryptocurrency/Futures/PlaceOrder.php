@@ -8,8 +8,6 @@ use React\Promise\PromiseInterface;
 
 class PlaceOrder
 {
-    public int|float $price = 0;
-    public int|float $quantity = 0;
     public string $setLeverageUrl = '';
     public string $placeOrderUrl = '';
     public Browser $http;
@@ -17,7 +15,6 @@ class PlaceOrder
 
     public function __construct(
         public LoopInterface $loop,
-        public array $params,
         public int $leverage = 10
     ) {
         $this->boot();
@@ -34,12 +31,12 @@ class PlaceOrder
         ];
     }
 
-    public function execute(): PromiseInterface
+    public function executeLimitOrder(array $params): PromiseInterface
     {
         return $this->setLeverageAndPlaceOrder([
-            'symbol' => $this->params['symbol'],
+            'symbol' => $params['symbol'],
             'leverage' => (string)$this->leverage,
-        ], $this->params);
+        ], $params);
     }
 
     public function setLeverageAndPlaceOrder(array $options, array $params): PromiseInterface
@@ -73,30 +70,14 @@ class PlaceOrder
 
     public function placeOrder(array $params): PromiseInterface
     {
-        // Format parameters properly
-        $orderParams = [
-            'symbol' => $params['symbol'],
-            'side' => $params['side'],
-            'type' => $params['type'],
-            'timeInForce' => $params['timeInForce'],
-            'price' => number_format($this->price, 2, '.', ''), // Format price with 2 decimals
-            'quantity' => number_format($this->quantity, 8, '.', ''), // Format quantity with 8 decimals
-            'recvWindow' => $params['recvWindow'] ?? 5000,
-            'timestamp' => time() * 1000
-        ];
-
         // Sort parameters alphabetically
-        ksort($orderParams);
-
-        Logger::create()->info('Order parameters before signature: ' . json_encode($orderParams));
+        ksort($params);
 
         // Generate signature with sorted parameters
-        $queryString = http_build_query($orderParams);
-        $orderParams['signature'] = hash_hmac('sha256', $queryString, $_ENV['BINANCE_SECRET_KEY']);
+        $queryString = http_build_query($params);
+        $params['signature'] = hash_hmac('sha256', $queryString, $_ENV['BINANCE_SECRET_KEY']);
 
-        Logger::create()->info('Final order request: ' . http_build_query($orderParams));
-
-        return $this->http->post($this->placeOrderUrl, $this->headers, http_build_query($orderParams))
+        return $this->http->post($this->placeOrderUrl, $this->headers, http_build_query($params))
             ->then(
                 function (ResponseInterface $response) {
                     $body = (string)$response->getBody();

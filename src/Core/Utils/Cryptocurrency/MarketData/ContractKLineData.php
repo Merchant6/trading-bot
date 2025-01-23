@@ -41,7 +41,7 @@ class ContractKLineData
         $limit = $this->options['limit'];
 
         $this->KLineDataUrl = $_ENV['BINANCE_API_URL'] . "/fapi/v1/continuousKlines?" . "pair=$pair&contractType=$contractType&interval=$interval&limit=$limit";
-        $this->http = http();
+        $this->http = new Browser();
         $this->pollInterval = $_ENV['PRICE_FETCH_INTERVAL'];
     }
 

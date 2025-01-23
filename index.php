@@ -4,6 +4,7 @@ use Merchant\TradingBot\Core\Trades\Strategy\BollingerRsiStrategy;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\AccountBalance;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\OpenOrders;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\PlaceOrder;
+use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\QueryPositions;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Indicators\BollingerBands;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\OrderBook;
@@ -45,14 +46,7 @@ $Kline = new ContractKLineData($loop, [
  * Place a Limit Order, price and quantity can be 
  * set up on $price and $quantity properties
  */
-$placeOrder = new PlaceOrder($loop, [
-    'symbol' => $symbol,       // Trading pair
-    'side' => $side,             // Order side
-    'type' => $orderType,           // Order type
-    'timeInForce' => 'GTC',      // Good Till Cancelled
-    'recvWindow' => 5000,
-], 
-$leverage);
+$placeOrder = new PlaceOrder($loop, $leverage);
 
 $logger = new Logger();
 
@@ -62,11 +56,12 @@ $bbRsi = new BollingerRsiStrategy(
     $orderBook,
     $logger,
     [
-        'symbol' => $symbol
+        'symbol' => $symbol,
+        'side' => $side,
+        'type' => $orderType,
     ]
 );
 $bbRsi->execute();
-
 
 // Run the event loop
 $loop->run();

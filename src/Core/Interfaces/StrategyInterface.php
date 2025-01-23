@@ -27,6 +27,6 @@ interface StrategyInterface
      * @param float $quantityWithLeverage
      * @return void
      */
-    public function checkAndPlaceOrder(float $currentPrice, float $quantityWithLeverage): void;
+    public function placeOrder(float $currentPrice, float $quantityWithLeverage): void;
     
 }
