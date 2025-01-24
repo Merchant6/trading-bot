@@ -73,6 +73,6 @@ function getExchangeInfo(string $symbol)
         ->then(function (ResponseInterface $response) {
             return json_decode($response->getBody(), true);
         })->catch(function (Throwable $e) {
-
+            "";
         });
 }
