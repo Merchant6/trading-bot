@@ -55,20 +55,7 @@ class BollingerRsiStrategy
      */
     public function checkOpenPositionsAndOrders(string $symbol): PromiseInterface
     {
-        $queryPositions = new QueryPositions();
-        $openOrders = new OpenOrders();
-
-        return \React\Promise\all([
-            $queryPositions->getPosition(['symbol' => $symbol, 'timestamp' => time() * 1000]),
-            $openOrders->queryOpenOrders(['symbol' => $symbol, 'timestamp' => time() * 1000])
-        ])->then(function (array $results) use ($symbol) {
-            [$positions, $orders] = $results;
-
-            $hasOpenPositions = !empty(array_filter($positions, fn($position) => $position['symbol'] === $symbol && abs((float)$position['positionAmt']) > 0));
-            $hasOpenOrders = !empty(array_filter($orders, fn($order) => $order['symbol'] === $symbol));
-
-            return [$hasOpenPositions, $hasOpenOrders];
-        });
+        return checkOpenPositionsAndOrders($symbol);
     }
 
     /**
@@ -77,7 +64,6 @@ class BollingerRsiStrategy
     public function execute(): void
     {
         if ($this->isOrderInProgress) {
-            $this->logger->info("Order already in progress for {$this->options['symbol']}. Skipping execution.");
             return;
         }
 
@@ -92,12 +78,11 @@ class BollingerRsiStrategy
         $this->contractKLineData->details(function (array $data) {
             $closePrices = array_column($data, 'close_price');
 
-            $bb = new BollingerBands();
-            $bands = $bb->calculate([
-                'prices' => $closePrices,
-                'period' => $this->period,
-                'stdDev' => $this->stdDev
-            ], TRADER_MA_TYPE_SMA);
+            $bands = getBollingerBands(
+                $closePrices, 
+                $this->period, 
+                $this->stdDev
+            );
 
             $lowerBand = round(end($bands['LowerBand']), 3);
             $currentPrice = round(end($closePrices), 3);
@@ -110,7 +95,6 @@ class BollingerRsiStrategy
             ) {
                 $this->placeOrder($currentPrice);
             } else {
-                $this->logger->info("Trade conditions not met. Waiting for the next opportunity.");
                 Timer\sleep(time: $this->cooldownPeriod)->then(fn() => $this->execute());
             }
         });
@@ -122,7 +106,6 @@ class BollingerRsiStrategy
     public function placeOrder(float $currentPrice): ?PromiseInterface
     {
         if ($this->isOrderInProgress) {
-            $this->logger->info("Order already in progress. Skipping.");
             return null;
         }
 
@@ -135,7 +118,6 @@ class BollingerRsiStrategy
                 [$hasOpenPositions, $hasOpenOrders] = $results;
 
                 if ($hasOpenPositions || $hasOpenOrders) {
-                    $this->logger->info("Open positions or orders exist for {$symbol}. Skipping order placement.");
                     Timer\sleep(time: $this->cooldownPeriod)->then(fn() => $this->execute());
                     return null;
                 }
@@ -164,11 +146,8 @@ class BollingerRsiStrategy
                             'recvWindow' => 5000,
                             'timestamp' => time() * 1000
                         ];
-
                         return $this->placeOrder->executeLimitOrder($orderParams)
                             ->then(function ($response) use ($symbol, $currentPrice, $quantityWithLeverage) {
-                                $this->logger->info("Order placed successfully for {$symbol}.", ['response' => $response]);
-                                
                                 $this->placeTakeProfitOrder($currentPrice, $symbol, $quantityWithLeverage);
                                 Timer\sleep(time: $this->cooldownPeriod)->then(fn() => $this->execute());
                             });
@@ -186,34 +165,28 @@ class BollingerRsiStrategy
 
     public function placeTakeProfitOrder(float $entryPrice, string $symbol, float $quantity)
     {
-        // Define profit percentage range
-        $minProfitPercentage = 1.08; // Minimum 8% profit
-        $maxProfitPercentage = 1.12; // Maximum 12% profit
+        $minProfitOnMargin = 8;  // Minimum 8% profit on margin
+        $maxProfitOnMargin = 12; // Maximum 12% profit on margin
 
-        // Randomly pick a profit percentage within the range
-        $profitPercentage = round(mt_rand($minProfitPercentage * 100, $maxProfitPercentage * 100) / 100, 2);
+        $profitOnMargin = mt_rand($minProfitOnMargin, $maxProfitOnMargin) / 100 . PHP_EOL;
 
-        // Determine the take-profit price based on the order side
-        $side = 'SELL'; // Opposite side of the original order
-
-        $takeProfitPrice = round($entryPrice * $profitPercentage, 3);
+        $profitAmount = $entryPrice * $profitOnMargin / $this->placeOrder->leverage . PHP_EOL; // Adjust profit for leverage
+        $takeProfitPrice = round($entryPrice + $profitAmount, 3) . PHP_EOL;
         $adjustedPrice = floor($takeProfitPrice / 0.01000000) * 0.01000000;
-        // Prepare the take profit order parameters
-        $takeProfitParams = [
+
+        $limitOrderParams = [
             'symbol' => $symbol,
-            'side' => $side,
-            'type' => 'TAKE_PROFIT',
+            'side' => 'SELL', 
+            'type' => 'LIMIT',
             'quantity' => $quantity,
-            'price' => $takeProfitPrice,
-            'stopPrice' => $takeProfitPrice, // Binance requires stopPrice for TAKE_PROFIT_LIMIT
+            'price' => $adjustedPrice,
             'timeInForce' => 'GTC',
             'recvWindow' => 5000,
             'timestamp' => time() * 1000
         ];
 
-        $this->placeOrder->executeTakeProfitOrder($takeProfitParams)->then(
-            function ($response) use ($symbol, $takeProfitPrice) {
-                $this->logger->info("Take profit order placed successfully for {$symbol} at {$takeProfitPrice}.", ['response' => $response]);
+        $this->placeOrder->executeTakeProfitOrder($limitOrderParams)->then(
+            function ($response) use ($symbol) {
                 $this->isOrderInProgress = false;
             },
             function (Throwable $e) use ($symbol) {
