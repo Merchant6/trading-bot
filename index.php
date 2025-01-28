@@ -22,7 +22,7 @@ $loop = Loop::get();
 
 $symbol = 'BTCUSDT';
 $side = 'BUY';
-$orderType = 'LIMIT';
+$orderType = 'MARKET';
 $contractType = 'PERPETUAL';
 $interval = '5m';
 $limit = 100;
@@ -48,7 +48,7 @@ $Kline = new ContractKLineData($loop, [
  */
 $placeOrder = new PlaceOrder($loop, $leverage);
 
-$logger = new Logger();
+$logger = logger();
 
 $bbRsi = new BollingerRsiStrategy(
     $Kline, 

@@ -10,6 +10,8 @@ use React\EventLoop\LoopInterface;
 use React\Http\Browser;
 use React\Promise\Promise;
 use React\Promise\PromiseInterface;
+use Throwable;
+
 use function React\Async\await;
 
 class AccountBalance
@@ -56,6 +58,7 @@ class AccountBalance
 
                 throw new Exception("Asset '$asset' not found in balance response");
             }
-        );
+        )
+        ->catch(fn (Throwable $e) => logger()->error("Error Fetching balance: {$e->getMessage()}"));
     }
 }

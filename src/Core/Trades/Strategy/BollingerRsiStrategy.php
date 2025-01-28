@@ -53,7 +53,7 @@ class BollingerRsiStrategy
     /**
      * Check for open positions and orders.
      */
-    public function checkOpenPositionsAndOrders(string $symbol): PromiseInterface
+    public function checkOpenPositionsAndOrders(string $symbol): array
     {
         return checkOpenPositionsAndOrders($symbol);
     }
@@ -105,62 +105,56 @@ class BollingerRsiStrategy
      */
     public function placeOrder(float $currentPrice): ?PromiseInterface
     {
-        if ($this->isOrderInProgress) {
-            return null;
-        }
+        try{
 
-        $this->isOrderInProgress = true;
-        $symbol = $this->options['symbol'];
-        $accountBalance = new AccountBalance();
-
-        return $this->checkOpenPositionsAndOrders($symbol)
-            ->then(function (array $results) use ($currentPrice, $symbol, $accountBalance) {
-                [$hasOpenPositions, $hasOpenOrders] = $results;
-
-                if ($hasOpenPositions || $hasOpenOrders) {
-                    Timer\sleep(time: $this->cooldownPeriod)->then(fn() => $this->execute());
-                    return null;
-                }
-
-                return $accountBalance->getBalance()->then(
-                    function (?float $userAccountBalance) use ($currentPrice, $symbol) {
-                        if (!$userAccountBalance || $userAccountBalance <= 0) {
-                            $this->logger->error("Insufficient account balance.");
-                            $this->isOrderInProgress = false;
-                            return null;
-                        }
-
-                        $balancePercentage = 2 / 100;
-                        $quantityWithLeverage = round(
-                            (($userAccountBalance * $balancePercentage) * $this->placeOrder->leverage) / $currentPrice,
-                            3
-                        );
-
-                        $orderParams = [
-                            'symbol' => $symbol,
-                            'side' => $this->options['side'],
-                            'type' => $this->options['type'],
-                            'timeInForce' => 'GTC',
-                            'price' => $currentPrice,
-                            'quantity' => $quantityWithLeverage,
-                            'recvWindow' => 5000,
-                            'timestamp' => time() * 1000
-                        ];
-                        return $this->placeOrder->executeLimitOrder($orderParams)
-                            ->then(function ($response) use ($symbol, $currentPrice, $quantityWithLeverage) {
-                                $this->placeTakeProfitOrder($currentPrice, $symbol, $quantityWithLeverage);
-                                Timer\sleep(time: $this->cooldownPeriod)->then(fn() => $this->execute());
-                            });
-                    },
-                    function (Throwable $e) {
-                        $this->logger->error("Error fetching account balance: {$e->getMessage()}");
-                        $this->isOrderInProgress = false;
-                    }
-                );
-            })
-            ->finally(function () {
+            if ($this->isOrderInProgress) {
+                return null;
+            }
+    
+            $this->isOrderInProgress = true;
+            $symbol = $this->options['symbol'];
+            $accountBalance = new AccountBalance();
+    
+            [$hasOpenPositions, $hasOpenOrders] = $this->checkOpenPositionsAndOrders($symbol);
+            if ($hasOpenPositions || $hasOpenOrders) {
+                Timer\sleep(time: $this->cooldownPeriod)->then(fn() => $this->execute());
+                return null;
+            }
+    
+            $userAccountBalance = await($accountBalance->getBalance());
+            if (!$userAccountBalance || $userAccountBalance <= 0) {
+                $this->logger->error("Insufficient account balance.");
                 $this->isOrderInProgress = false;
-            });
+                return null;
+            }
+            
+            
+            $balancePercentage = 2 / 100;
+            $quantityWithLeverage = round(
+                (($userAccountBalance * $balancePercentage) * $this->placeOrder->leverage) / $currentPrice,
+                3
+            );
+    
+            $orderParams = [
+                'symbol' => $symbol,
+                'side' => $this->options['side'],
+                'type' => 'MARKET',
+                'quantity' => $quantityWithLeverage,
+                'recvWindow' => 5000,
+                'timestamp' => time() * 1000
+            ];
+    
+            return $this->placeOrder->executeLimitOrder($orderParams)
+                ->then(function ($response) use ($symbol, $currentPrice, $quantityWithLeverage) {
+                    $this->placeTakeProfitOrder($currentPrice, $symbol, $quantityWithLeverage);
+                    Timer\sleep(time: $this->cooldownPeriod)->then(fn() => $this->execute());
+                });
+    
+                
+        } catch (Throwable $e) {
+            $this->isOrderInProgress = false;
+            $this->logger->error($e->getMessage());
+        }
     }
 
     public function placeTakeProfitOrder(float $entryPrice, string $symbol, float $quantity)
@@ -170,15 +164,26 @@ class BollingerRsiStrategy
 
         $profitOnMargin = mt_rand($minProfitOnMargin, $maxProfitOnMargin) / 100 . PHP_EOL;
 
-        $profitAmount = $entryPrice * $profitOnMargin / $this->placeOrder->leverage . PHP_EOL; // Adjust profit for leverage
-        $takeProfitPrice = round($entryPrice + $profitAmount, 3) . PHP_EOL;
-        $adjustedPrice = floor($takeProfitPrice / 0.01000000) * 0.01000000;
+        $exchangeInfo = getExchangeInfo($symbol);
+        $tickSize = (float)$exchangeInfo['symbols'][0]['filters'][0]['tickSize'];
+        $precision = (int)$exchangeInfo['symbols'][0]['baseAssetPrecision'];
+
+        $profitAmount = $entryPrice * $profitOnMargin / $this->placeOrder->leverage; // Adjust profit for leverage
+        $takeProfitPrice = round($entryPrice + $profitAmount, $precision);
+
+        // Adjust price according to tick size and precision
+        $scaled = $takeProfitPrice / $tickSize;
+        $rounded = round($scaled);
+        $adjustedPrice = round($rounded * $tickSize, $precision);
+        
+        // Round quantity according to precision requirements
+        $adjustedQuantity = round($quantity, $precision);
 
         $limitOrderParams = [
             'symbol' => $symbol,
             'side' => 'SELL', 
             'type' => 'LIMIT',
-            'quantity' => $quantity,
+            'quantity' => $adjustedQuantity,
             'price' => $adjustedPrice,
             'timeInForce' => 'GTC',
             'recvWindow' => 5000,
