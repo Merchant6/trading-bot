@@ -159,45 +159,21 @@ class BollingerRsiStrategy
 
     public function placeTakeProfitOrder(float $entryPrice, string $symbol, float $quantity)
     {
-        $minProfitOnMargin = 8;  // Minimum 8% profit on margin
-        $maxProfitOnMargin = 12; // Maximum 12% profit on margin
+        placeTakeProfitOrder(
+            $this->placeOrder, 
+            $entryPrice, 
+            $symbol, 
+            $quantity
+        );
+    }
 
-        $profitOnMargin = mt_rand($minProfitOnMargin, $maxProfitOnMargin) / 100 . PHP_EOL;
-
-        $exchangeInfo = getExchangeInfo($symbol);
-        $tickSize = (float)$exchangeInfo['symbols'][0]['filters'][0]['tickSize'];
-        $precision = (int)$exchangeInfo['symbols'][0]['baseAssetPrecision'];
-
-        $profitAmount = $entryPrice * $profitOnMargin / $this->placeOrder->leverage; // Adjust profit for leverage
-        $takeProfitPrice = round($entryPrice + $profitAmount, $precision);
-
-        // Adjust price according to tick size and precision
-        $scaled = $takeProfitPrice / $tickSize;
-        $rounded = round($scaled);
-        $adjustedPrice = round($rounded * $tickSize, $precision);
-        
-        // Round quantity according to precision requirements
-        $adjustedQuantity = round($quantity, $precision);
-
-        $limitOrderParams = [
-            'symbol' => $symbol,
-            'side' => 'SELL', 
-            'type' => 'LIMIT',
-            'quantity' => $adjustedQuantity,
-            'price' => $adjustedPrice,
-            'timeInForce' => 'GTC',
-            'recvWindow' => 5000,
-            'timestamp' => time() * 1000
-        ];
-
-        $this->placeOrder->executeTakeProfitOrder($limitOrderParams)->then(
-            function ($response) use ($symbol) {
-                $this->isOrderInProgress = false;
-            },
-            function (Throwable $e) use ($symbol) {
-                $this->logger->error("Failed to place take profit order for {$symbol}: " . $e->getMessage(), ['exception' => $e]);
-                $this->isOrderInProgress = true;
-            }
+    public function placeStopLossOrder(float $entryPrice, string $symbol, float $quantity)
+    {
+        placeStopLossOrder(
+            $this->placeOrder, 
+            $entryPrice, 
+            $symbol, 
+            $quantity
         );
     }
 }

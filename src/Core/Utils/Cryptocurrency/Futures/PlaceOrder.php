@@ -39,7 +39,7 @@ class PlaceOrder
         ], $params);
     }
 
-    public function executeTakeProfitOrder(array $params)
+    public function executeOrder(array $params)
     {
         return $this->placeOrder($params);
     }

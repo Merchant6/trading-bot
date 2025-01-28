@@ -5,6 +5,7 @@ use Merchant\TradingBot\Core\Utils\Logger;
 use React\Http\Browser;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\QueryPositions;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\OpenOrders;
+use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\PlaceOrder;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Indicators\BollingerBands;
 use Psr\Http\Message\ResponseInterface;
 use React\Promise\PromiseInterface;
@@ -125,4 +126,86 @@ function getExchangeInfo(string $symbol): array
 function logger()
 {
     return new Logger();
+}
+
+function placeTakeProfitOrder(PlaceOrder $placeOrder, float $entryPrice, string $symbol, float $quantity)
+{
+    $minProfitOnMargin = 8;  // Minimum 8% profit on margin
+        $maxProfitOnMargin = 12; // Maximum 12% profit on margin
+
+        $profitOnMargin = mt_rand($minProfitOnMargin, $maxProfitOnMargin) / 100 . PHP_EOL;
+
+        $exchangeInfo = getExchangeInfo($symbol);
+        $tickSize = (float)$exchangeInfo['symbols'][0]['filters'][0]['tickSize'];
+        $precision = (int)$exchangeInfo['symbols'][0]['baseAssetPrecision'];
+
+        $profitAmount = $entryPrice * $profitOnMargin / $placeOrder->leverage; // Adjust profit for leverage
+        $takeProfitPrice = round($entryPrice + $profitAmount, $precision);
+
+        // Adjust price according to tick size and precision
+        $scaled = $takeProfitPrice / $tickSize;
+        $rounded = round($scaled);
+        $adjustedPrice = round($rounded * $tickSize, $precision);
+        
+        // Round quantity according to precision requirements
+        $adjustedQuantity = round($quantity, $precision);
+
+        $limitOrderParams = [
+            'symbol' => $symbol,
+            'side' => 'SELL', 
+            'type' => 'LIMIT',
+            'quantity' => $adjustedQuantity,
+            'price' => $adjustedPrice,
+            'timeInForce' => 'GTC',
+            'recvWindow' => 5000,
+            'timestamp' => time() * 1000
+        ];
+
+        $placeOrder->executeOrder($limitOrderParams)->then(
+            function ($response) use ($symbol) {
+                $this->isOrderInProgress = false;
+            },
+            function (Throwable $e) use ($symbol) {
+                $this->logger->error("Failed to place take profit order for {$symbol}: " . $e->getMessage(), ['exception' => $e]);
+                $this->isOrderInProgress = true;
+            }
+        );
+}
+
+function placeStopLossOrder(PlaceOrder $placeOrder, float $entryPrice, string $symbol, float $quantity)
+{
+    // Stop loss price: 35% below the entry price
+    $stopLossPercentage = 35 / 100; 
+    $stopLossPrice = $entryPrice * (1 - $stopLossPercentage);
+
+    // Fetch exchange information for precision and tick size
+    $exchangeInfo = getExchangeInfo($symbol);
+    $tickSize = (float)$exchangeInfo['symbols'][0]['filters'][0]['tickSize'];
+    $precision = (int)$exchangeInfo['symbols'][0]['baseAssetPrecision'];
+
+    // Adjust price and quantity according to exchange rules
+    $adjustedStopLossPrice = round(floor($stopLossPrice / $tickSize) * $tickSize, $precision);
+    $adjustedQuantity = round($quantity, $precision);
+
+    $stopLossOrderParams = [
+        'symbol' => $symbol,
+        'side' => 'SELL',
+        'type' => 'STOP_MARKET',
+        'quantity' => $adjustedQuantity,
+        'stopPrice' => $adjustedStopLossPrice, // The stop price for triggering the stop-loss
+        'recvWindow' => 5000,
+        'timestamp' => time() * 1000
+    ];
+
+    // Place the stop loss order
+    $placeOrder->executeOrder($stopLossOrderParams)->then(
+        function ($response) use ($symbol, $entryPrice) {
+            $this->logger->info("Stop loss order placed successfully for {$symbol} at price {$entryPrice}");
+            $this->isOrderInProgress = false;
+        },
+        function (Throwable $e) use ($symbol) {
+            $this->logger->error("Failed to place stop loss order for {$symbol}: " . $e->getMessage(), ['exception' => $e]);
+            $this->isOrderInProgress = true;
+        }
+    );
 }
