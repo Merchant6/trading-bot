@@ -64,13 +64,7 @@ class Logger implements LoggerInterface
 
     public function info(string|\Stringable $message, array $context = []): void
     {
-        $stackTrace = debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS);
-
-        $formattedTrace = array_map(function ($trace) {
-            return "{$trace['file']}:{$trace['line']} - {$trace['function']}";
-        }, $stackTrace);
-
-        $this->logger->info($message, ['stack_trace' => $formattedTrace] + $context);
+        $this->logger->info($message, $context);
     }
 
     public function debug(string|\Stringable $message, array $context = []): void

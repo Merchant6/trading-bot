@@ -5,18 +5,20 @@ use Psr\Http\Message\ResponseInterface;
 use React\EventLoop\LoopInterface;
 use React\Http\Browser;
 use React\Promise\PromiseInterface;
+use Throwable;
+
+use function React\Async\await;
 
 class PlaceOrder
 {
     public string $setLeverageUrl = '';
     public string $placeOrderUrl = '';
+    public string $cancelOrderUrl = '';
     public Browser $http;
     public array $headers = [];
 
-    public function __construct(
-        public LoopInterface $loop,
-        public int $leverage = 10
-    ) {
+    public function __construct(public int $leverage = 10) 
+    {
         $this->boot();
     }
 
@@ -24,6 +26,8 @@ class PlaceOrder
     {
         $this->setLeverageUrl = $_ENV['BINANCE_API_URL'] . "/fapi/v1/leverage";
         $this->placeOrderUrl = $_ENV['BINANCE_API_URL'] . "/fapi/v1/order";
+        $this->cancelOrderUrl = $_ENV['BINANCE_API_URL'] . "/fapi/v1/order";
+
         $this->http = http();
         $this->headers = [
             'X-MBX-APIKEY' => $_ENV['BINANCE_API_KEY'],
@@ -31,7 +35,7 @@ class PlaceOrder
         ];
     }
 
-    public function executeLimitOrder(array $params): PromiseInterface
+    public function executeLeveragedOrder(array $params): PromiseInterface
     {
         return $this->setLeverageAndPlaceOrder([
             'symbol' => $params['symbol'],
@@ -104,4 +108,21 @@ class PlaceOrder
                 }
             );
     }
+
+    public function cancelOrder(array $params)
+    {
+        try {
+            $queryString = http_build_query($params);
+            $params['signature'] = hash_hmac('sha256', $queryString, $_ENV['BINANCE_SECRET_KEY']);
+
+            $promise = $this->http->delete($this->cancelOrderUrl, $this->headers, $params);
+            $response = await($promise);
+
+            return $response;
+        } catch (Throwable $e) {
+            logger()->error("Error cancelling order: " . $e->getMessage());
+        }
+    }
+
+    
 }

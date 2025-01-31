@@ -49,15 +49,45 @@ function checkOpenPositionsAndOrders(string $symbol): array
         $queryPositions = new QueryPositions();
         $openOrders = new OpenOrders();
 
-        $positions = await($queryPositions->getPosition(['symbol' => $symbol, 'timestamp' => time() * 1000]));
-        $orders = await($openOrders->queryOpenOrders(['symbol' => $symbol, 'timestamp' => time() * 1000]));
+        $positions = await($queryPositions->getPosition(['symbol' => $symbol, 'timestamp' => time() * 1000])) ?? [];
+        $orders = await($openOrders->queryOpenOrders(['symbol' => $symbol, 'timestamp' => time() * 1000])) ?? [];
 
-        $hasOpenPositions = !empty(array_filter($positions, fn($position) => $position['symbol'] === $symbol && abs((float)$position['positionAmt']) > 0));
-        $hasOpenOrders = !empty(array_filter($orders, fn($order) => $order['symbol'] === $symbol));
+        if (!is_array($positions)) {
+            logger()->error("Unexpected response: positions is not an array", ['response' => $positions]);
+            $positions = [];
+        }
+
+        if (!is_array($orders)) {
+            logger()->error("Unexpected response: orders is not an array", ['response' => $orders]);
+            $orders = [];
+        }
+
+        $hasOpenPositions = !empty(array_filter($positions, fn($position) => isset($position['symbol']) && $position['symbol'] === $symbol && abs((float)$position['positionAmt']) > 0));
+        $hasOpenOrders = !empty(array_filter($orders, fn($order) => isset($order['symbol']) && $order['symbol'] === $symbol));
 
         return [$hasOpenPositions, $hasOpenOrders];
-    } catch (Throwable $e)  {
-        logger()->error("Error fetching account balance: {$e->getMessage()}");
+    } catch (Throwable $e) {
+        logger()->error("Error querying open positions and orders: {$e->getMessage()}");
+        return []; // Return a default value instead of an empty array
+    }
+}
+
+function getPositionInfo(string $symbol): array
+{
+    try {
+            $queryPositions = new QueryPositions();
+            $positions = await($queryPositions->getPosition([
+                'symbol' => $symbol, 
+                'timestamp' => time() * 1000
+            ]));
+
+            if (!is_array($positions) || empty($positions) || $positions[0]['positionAmt'] == 0) {
+                return [];
+            }
+
+            return $positions;
+    } catch (Throwable $e) {
+        error_log("Error fetching position info: " . $e->getMessage());
         return [];
     }
 }
@@ -126,86 +156,4 @@ function getExchangeInfo(string $symbol): array
 function logger()
 {
     return new Logger();
-}
-
-function placeTakeProfitOrder(PlaceOrder $placeOrder, float $entryPrice, string $symbol, float $quantity)
-{
-    $minProfitOnMargin = 8;  // Minimum 8% profit on margin
-        $maxProfitOnMargin = 12; // Maximum 12% profit on margin
-
-        $profitOnMargin = mt_rand($minProfitOnMargin, $maxProfitOnMargin) / 100 . PHP_EOL;
-
-        $exchangeInfo = getExchangeInfo($symbol);
-        $tickSize = (float)$exchangeInfo['symbols'][0]['filters'][0]['tickSize'];
-        $precision = (int)$exchangeInfo['symbols'][0]['baseAssetPrecision'];
-
-        $profitAmount = $entryPrice * $profitOnMargin / $placeOrder->leverage; // Adjust profit for leverage
-        $takeProfitPrice = round($entryPrice + $profitAmount, $precision);
-
-        // Adjust price according to tick size and precision
-        $scaled = $takeProfitPrice / $tickSize;
-        $rounded = round($scaled);
-        $adjustedPrice = round($rounded * $tickSize, $precision);
-        
-        // Round quantity according to precision requirements
-        $adjustedQuantity = round($quantity, $precision);
-
-        $limitOrderParams = [
-            'symbol' => $symbol,
-            'side' => 'SELL', 
-            'type' => 'LIMIT',
-            'quantity' => $adjustedQuantity,
-            'price' => $adjustedPrice,
-            'timeInForce' => 'GTC',
-            'recvWindow' => 5000,
-            'timestamp' => time() * 1000
-        ];
-
-        $placeOrder->executeOrder($limitOrderParams)->then(
-            function ($response) use ($symbol) {
-                $this->isOrderInProgress = false;
-            },
-            function (Throwable $e) use ($symbol) {
-                $this->logger->error("Failed to place take profit order for {$symbol}: " . $e->getMessage(), ['exception' => $e]);
-                $this->isOrderInProgress = true;
-            }
-        );
-}
-
-function placeStopLossOrder(PlaceOrder $placeOrder, float $entryPrice, string $symbol, float $quantity)
-{
-    // Stop loss price: 35% below the entry price
-    $stopLossPercentage = 35 / 100; 
-    $stopLossPrice = $entryPrice * (1 - $stopLossPercentage);
-
-    // Fetch exchange information for precision and tick size
-    $exchangeInfo = getExchangeInfo($symbol);
-    $tickSize = (float)$exchangeInfo['symbols'][0]['filters'][0]['tickSize'];
-    $precision = (int)$exchangeInfo['symbols'][0]['baseAssetPrecision'];
-
-    // Adjust price and quantity according to exchange rules
-    $adjustedStopLossPrice = round(floor($stopLossPrice / $tickSize) * $tickSize, $precision);
-    $adjustedQuantity = round($quantity, $precision);
-
-    $stopLossOrderParams = [
-        'symbol' => $symbol,
-        'side' => 'SELL',
-        'type' => 'STOP_MARKET',
-        'quantity' => $adjustedQuantity,
-        'stopPrice' => $adjustedStopLossPrice, // The stop price for triggering the stop-loss
-        'recvWindow' => 5000,
-        'timestamp' => time() * 1000
-    ];
-
-    // Place the stop loss order
-    $placeOrder->executeOrder($stopLossOrderParams)->then(
-        function ($response) use ($symbol, $entryPrice) {
-            $this->logger->info("Stop loss order placed successfully for {$symbol} at price {$entryPrice}");
-            $this->isOrderInProgress = false;
-        },
-        function (Throwable $e) use ($symbol) {
-            $this->logger->error("Failed to place stop loss order for {$symbol}: " . $e->getMessage(), ['exception' => $e]);
-            $this->isOrderInProgress = true;
-        }
-    );
 }

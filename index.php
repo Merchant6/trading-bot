@@ -11,6 +11,8 @@ use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\OrderBook;
 use Merchant\TradingBot\Core\Utils\Logger;
 use React\EventLoop\Loop;
 
+use function React\Async\await;
+
 require __DIR__ . "/vendor/autoload.php";
 
 //Initializing Dotenv
@@ -42,23 +44,17 @@ $Kline = new ContractKLineData($loop, [
     ]
 );
 
-/**
- * Place a Limit Order, price and quantity can be 
- * set up on $price and $quantity properties
- */
-$placeOrder = new PlaceOrder($loop, $leverage);
-
 $logger = logger();
 
 $bbRsi = new BollingerRsiStrategy(
     $Kline, 
-    $placeOrder,
     $orderBook,
     $logger,
     [
         'symbol' => $symbol,
         'side' => $side,
         'type' => $orderType,
+        'leverage' => $leverage
     ]
 );
 $bbRsi->execute();
