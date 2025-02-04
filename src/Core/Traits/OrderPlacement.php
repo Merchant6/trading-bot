@@ -37,7 +37,7 @@ trait OrderPlacement
 
             [$hasOpenPositions, $hasOpenOrders] = checkOpenPositionsAndOrders($options['symbol']);
             if ($hasOpenPositions || $hasOpenOrders) {
-                sleep(time: $this->cooldownPeriod)->then(fn() => $this->execute());
+                sleep(time: $_ENV['COOL_DOWN_PERIOD'])->then(fn() => $this->execute());
                 return;
             }
 
@@ -97,18 +97,15 @@ trait OrderPlacement
             $precision = (int)$exchangeInfo['symbols'][0]['baseAssetPrecision'];
             $quantity = abs(round($positionAmt, $precision));
 
-            $this->logger->info("$profitPercentage");
             // Take profit condition
-            if ($profitPercentage >= 0.5 && $profitPercentage <= 1) {
+            if ($profitPercentage > 8 && $profitPercentage <= 12) {
                 $this->executeMarketOrder($symbol, $quantity, "Take profit at {$profitPercentage}%");
-                $this->logger->info("Take Profit Hit: $profitPercentage");
                 return;
             }
 
             // Stop loss condition
-            if ($profitPercentage <= -2) {
+            if ($profitPercentage <= -25) {
                 $this->placeStopLossOrder($entryPrice, $symbol, $quantity);
-                $this->logger->info("Take Profit Hit: $profitPercentage");
                 return;
             }
         }));
@@ -116,12 +113,18 @@ trait OrderPlacement
 
     public function stopMonitoring(): void
     {   
-        Loop::cancelTimer($this->monitoringTimer);
-        $this->monitoringTimer = null;
-        
-        $this->isOrderInProgress = false;
+        if($this->monitoringTimer !== null){
+            Loop::cancelTimer($this->monitoringTimer);
+            $this->monitoringTimer = null;
+            
+            $this->isOrderInProgress = false;
+            sleep($_ENV['COOL_DOWN_PERIOD'])
+                ->then(fn () => $this->execute());
+        }
 
-        $this->execute();
+        $this->isOrderInProgress = false;
+        sleep($_ENV['COOL_DOWN_PERIOD'])
+            ->then(fn () => $this->execute());
     }
 
     private function executeMarketOrder(string $symbol, float $quantity, string $message): void

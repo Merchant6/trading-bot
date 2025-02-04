@@ -8,6 +8,8 @@ use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\OrderBook;
 use Psr\Log\LoggerInterface;
 use React\Promise\Timer;
 
+use function React\Promise\Timer\sleep;
+
 /**
  * Implements Bollinger Bands and RSI trading strategy.
  */
@@ -15,9 +17,8 @@ class BollingerRsiStrategy
 {
     use OrderPlacement;
 
-    private int $period = 120;
+    private int $period = 20;
     private int $stdDev = 2;
-    private int|float $cooldownPeriod = 10;
     
     public function __construct(
         private ContractKLineData $contractKLineData,
@@ -36,7 +37,6 @@ class BollingerRsiStrategy
     {
         $this->period = $this->options['period'] ?? $this->period;
         $this->stdDev = $this->options['stdDev'] ?? $this->stdDev;
-        $this->cooldownPeriod = $this->options['cooldownPeriod'] ?? $this->cooldownPeriod;
     }
 
     /**
@@ -58,25 +58,28 @@ class BollingerRsiStrategy
     {
         $this->contractKLineData->details(function (array $data) {
             $closePrices = array_column($data, 'close_price');
-
+            
             $bands = getBollingerBands(
                 $closePrices, 
                 $this->period, 
                 $this->stdDev
             );
-
+            
             $lowerBand = round(end($bands['LowerBand']), 3);
+            $middleBand = round(end($bands['MiddleBand']), 3);
             $currentPrice = round(end($closePrices), 3);
             $lastTwoPrices = array_slice($closePrices, -2);
 
-            if ($currentPrice > $lowerBand &&
-                count($lastTwoPrices) === 2 &&
-                $lastTwoPrices[0] > $lowerBand &&
-                $lastTwoPrices[1] > $lowerBand
-            ) {
+            $tradeCondition = $currentPrice > $lowerBand && 
+            count($lastTwoPrices) === 2 && 
+            $lastTwoPrices[0] > $lowerBand && 
+            $lastTwoPrices[1] > $lowerBand &&
+            $currentPrice < $middleBand;
+
+            if ($tradeCondition) {
                 $this->placeOrder($currentPrice, $this->options);
             } else {
-                Timer\sleep(time: $this->cooldownPeriod)->then(fn() => $this->execute());
+                sleep(time: $_ENV['COOL_DOWN_PERIOD'])->then(fn() => $this->execute());
             }
         });
     }

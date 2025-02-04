@@ -19,7 +19,7 @@ class BollingerBands
      * @param int|string $movingAverageType
      * @return array
      */
-    public function calculate(array $bbOptions, int|string $movingAverageType = TRADER_MA_TYPE_SMA)
+    public function calculate(array $bbOptions, int|string $movingAverageType = TRADER_MA_TYPE_EMA)
     {
         $prices = $bbOptions['prices'];
         $period = $bbOptions['period'];

@@ -58,6 +58,6 @@ $bbRsi = new BollingerRsiStrategy(
     ]
 );
 $bbRsi->execute();
-
+echo error_get_last();
 // Run the event loop
 $loop->run();
