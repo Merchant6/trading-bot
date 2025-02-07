@@ -82,7 +82,7 @@ trait OrderPlacement
             $positions = getPositionInfo($symbol);
             if (empty($positions)) {
                 $this->stopMonitoring();
-                $this->logger->info("Position closed for {$symbol}. Monitoring stopped.");
+                $this->logger->info("No positons found for {$symbol}. Monitoring stopped.");
                 return;
             }
         
@@ -99,12 +99,14 @@ trait OrderPlacement
 
             // Take profit condition
             if ($profitPercentage > 8 && $profitPercentage <= 12) {
+                $this->logger->info('Should TP.');
                 $this->executeMarketOrder($symbol, $quantity, "Take profit at {$profitPercentage}%");
                 return;
             }
 
             // Stop loss condition
             if ($profitPercentage <= -25) {
+                $this->logger->info('Should SL.');
                 $this->placeStopLossOrder($entryPrice, $symbol, $quantity);
                 return;
             }
@@ -133,7 +135,7 @@ trait OrderPlacement
 
         $params = [
             'symbol' => $symbol,
-            'side' => $quantity > 0 ? 'SELL' : 'BUY',
+            'side' => 'SELL',
             'type' => 'MARKET',
             'quantity' => $quantity,
             'recvWindow' => 5000,
