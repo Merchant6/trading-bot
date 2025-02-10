@@ -98,14 +98,14 @@ trait OrderPlacement
             $quantity = abs(round($positionAmt, $precision));
 
             // Take profit condition
-            if ($profitPercentage > 8 && $profitPercentage <= 12) {
+            if ($profitPercentage > 15 && $profitPercentage <= 20) {
                 $this->logger->info('Should TP.');
                 $this->executeMarketOrder($symbol, $quantity, "Take profit at {$profitPercentage}%");
                 return;
             }
 
             // Stop loss condition
-            if ($profitPercentage <= -25) {
+            if ($profitPercentage <= -15) {
                 $this->logger->info('Should SL.');
                 $this->placeStopLossOrder($entryPrice, $symbol, $quantity);
                 return;
