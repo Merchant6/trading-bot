@@ -155,5 +155,11 @@ function getExchangeInfo(string $symbol): array
  */
 function logger()
 {
-    return new Logger();
+    static $instance = null;
+    
+    if ($instance === null) {
+        $instance = new Logger();
+    }
+    
+    return $instance;
 }

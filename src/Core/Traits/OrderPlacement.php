@@ -97,19 +97,20 @@ trait OrderPlacement
             $precision = (int)$exchangeInfo['symbols'][0]['baseAssetPrecision'];
             $quantity = abs(round($positionAmt, $precision));
 
+            $this->logger->info($profitPercentage);
             // Take profit condition
-            if ($profitPercentage >= 15 || $profitPercentage <= 20) {
-                $this->logger->info('Should TP.');
-                $this->executeMarketOrder($symbol, $quantity, "Take profit at {$profitPercentage}%");
-                return;
-            }
+            // if ($profitPercentage >= 15 || $profitPercentage <= 20) {
+            //     $this->logger->info('Should TP.');
+            //     $this->executeMarketOrder($symbol, $quantity);
+            //     return;
+            // }
 
-            // Stop loss condition
-            if ($profitPercentage <= -15) {
-                $this->logger->info('Should SL.');
-                $this->placeStopLossOrder($entryPrice, $symbol, $quantity);
-                return;
-            }
+            // // Stop loss condition
+            // if ($profitPercentage <= -15) {
+            //     $this->logger->info('Should SL.');
+            //     $this->placeStopLossOrder($entryPrice, $symbol, $quantity);
+            //     return;
+            // }
         }));
     }
 
@@ -129,7 +130,7 @@ trait OrderPlacement
             ->then(fn () => $this->execute());
     }
 
-    private function executeMarketOrder(string $symbol, float $quantity, string $message): void
+    private function executeMarketOrder(string $symbol, float $quantity): void
     {   
         $this->isOrderInProgress = true;
 
@@ -143,8 +144,7 @@ trait OrderPlacement
         ];
 
         $this->placeOrder->executeOrder($params)->then(
-            function () use ($symbol, $message) {
-                $this->logger->info($message);
+            function () use ($symbol) {
                 $this->stopMonitoring();
             },
             function (Throwable $e) use ($symbol) {

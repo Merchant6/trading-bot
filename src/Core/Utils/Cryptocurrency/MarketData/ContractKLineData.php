@@ -5,14 +5,17 @@ namespace Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData;
 use Merchant\TradingBot\Core\Utils\Logger;
 use Psr\Http\Message\ResponseInterface;
 use React\EventLoop\LoopInterface;
+use React\EventLoop\TimerInterface;
 use React\Http\Browser;
+
+use function React\Promise\Timer\sleep;
 
 class ContractKLineData
 {
     public Browser $http;
     public string $KLineDataUrl = '';
     public int|string|float $pollInterval = 5;
-
+    public ?TimerInterface $timer = null;
     /**
      * Summary of __construct
      * @param \React\EventLoop\LoopInterface $loop
@@ -54,8 +57,13 @@ class ContractKLineData
      * @return void
      */
     public function details($callback)
-    {
-        $this->loop->addPeriodicTimer($this->pollInterval, function () use($callback)  {
+    {   
+        if ($this->timer !== null) {
+            $this->loop->cancelTimer($this->timer);
+            $this->timer = null;
+        }
+
+        $this->timer = $this->loop->addPeriodicTimer($this->pollInterval, function () use($callback)  {
             $this->http->get($this->KLineDataUrl)->then(function (ResponseInterface $response) use($callback) {
                 $KLineData = json_decode($response->getBody(), true);
 
@@ -80,13 +88,16 @@ class ContractKLineData
             })
             ->catch(function ($exception) use($callback) {
 
+                if ($this->timer) {
+                    $this->loop->cancelTimer($this->timer);
+                }
+
                 //Log The Exception
-                Logger::create()->info("Error fetching Contact KLine Data: " . $exception->getMessage());
+                logger()->info("Error fetching Contact KLine Data: " . $exception->getMessage());
                 
                 // Schedule the fetch method to run again after a delay (retry logic)
-                $this->loop->addTimer($this->pollInterval * 2, function () use($callback) {
-                    $this->details($callback);
-                });
+                sleep($_ENV['COOL_DOWN_PERIOD'])
+                    ->then(fn () => $this->details($callback));
             });
         } );
     }
