@@ -24,4 +24,4 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
 # Keep the container alive with a shell (so you can run the bot manually)
-CMD ["/bin/sh"]
+CMD ["tail", "-f", "/dev/null"]
