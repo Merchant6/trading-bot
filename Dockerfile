@@ -23,5 +23,5 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Install project dependencies
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
-# Set the default command to execute your bot script
-#CMD ["php", "/app/bot.php"]
+# Keep the container alive with a shell (so you can run the bot manually)
+CMD ["bash"]
