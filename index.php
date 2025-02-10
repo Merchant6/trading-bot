@@ -1,17 +1,9 @@
 <?php
 
 use Merchant\TradingBot\Core\Trades\Strategy\BollingerRsiStrategy;
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\AccountBalance;
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\OpenOrders;
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\PlaceOrder;
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\QueryPositions;
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\Indicators\BollingerBands;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\OrderBook;
-use Merchant\TradingBot\Core\Utils\Logger;
 use React\EventLoop\Loop;
-
-use function React\Async\await;
 
 require __DIR__ . "/vendor/autoload.php";
 
@@ -22,13 +14,27 @@ $dotenv->load();
 //Initializing the event loop
 $loop = Loop::get();
 
-$symbol = 'BTCUSDT';
-$side = 'BUY';
-$orderType = 'MARKET';
-$contractType = 'PERPETUAL';
-$interval = '5m';
-$limit = 100;
-$leverage = 10;
+$options = getopt("", [
+    "symbol:",       // Required
+    "side::",        // Optional (default: BUY)
+    "ordertype::",   // Optional (default: MARKET)
+    "contractType::",// Optional (default: PERPETUAL)
+    "interval::",    // Optional (default: 5m)
+    "limit::",       // Optional (default: 100)
+    "leverage:",     // Required
+]);
+
+if (!isset($options['symbol']) || !isset($options['leverage'])) {
+    die("Error: Missing required parameters --symbol and --leverage.\n");
+}
+
+$symbol = $options['symbol'];
+$side = $options['side'] ?? 'BUY';
+$orderType = $options['ordertype'] ?? 'MARKET';
+$contractType = $options['contractType'] ?? 'PERPETUAL';
+$interval = $options['interval'] ?? '5m';
+$limit = isset($options['limit']) ? (int)$options['limit'] : 100;
+$leverage = (int) $options['leverage'];
 
 $orderBook = new OrderBook($loop, [
     'limit' => 100,
@@ -58,6 +64,6 @@ $bbRsi = new BollingerRsiStrategy(
     ]
 );
 $bbRsi->execute();
-echo error_get_last();
+
 // Run the event loop
 $loop->run();
