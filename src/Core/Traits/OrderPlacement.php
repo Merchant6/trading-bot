@@ -182,4 +182,21 @@ trait OrderPlacement
             }
         );
     }
+
+    public function recoverOpenPositions(array $options): void
+    {
+        try{
+            $positions = getPositionInfo($options['symbol']);
+            if (empty($positions)) {
+                $this->logger->info("No open positions found for {$options['symbol']}.");
+                return;
+            }
+
+            $this->logger->info("Open position found for {$options['symbol']}. Resuming monitoring.");
+            $this->startMonitoring($options['symbol']);
+
+        } catch (Throwable $e) {
+            $this->logger->error("Failed to recover open positions: " . $e->getMessage());
+        }
+    }
 }

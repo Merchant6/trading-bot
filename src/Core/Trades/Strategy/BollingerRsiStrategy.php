@@ -43,7 +43,9 @@ class BollingerRsiStrategy
      * Main entry point for executing the strategy.
      */
     public function execute(): void
-    {
+    {   
+        $this->recoverOpenPositions($this->options);
+
         if ($this->isOrderInProgress) {
             return;
         }
