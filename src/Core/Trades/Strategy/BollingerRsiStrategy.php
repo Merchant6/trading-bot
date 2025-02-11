@@ -22,11 +22,8 @@ class BollingerRsiStrategy
     
     public function __construct(
         private ContractKLineData $contractKLineData,
-        private OrderBook $orderBook,
-        LoggerInterface $logger,
         public array $options = []
     ) {
-        $this->logger = $logger;
         $this->boot();
     }
 
@@ -37,6 +34,7 @@ class BollingerRsiStrategy
     {
         $this->period = $this->options['period'] ?? $this->period;
         $this->stdDev = $this->options['stdDev'] ?? $this->stdDev;
+        $this->init($this->options);
     }
 
     /**
@@ -79,7 +77,7 @@ class BollingerRsiStrategy
             $currentPrice < $middleBand;
 
             if ($tradeCondition) {
-                $this->placeOrder($currentPrice, $this->options);
+                $this->placeOrder($currentPrice);
             } else {
                 sleep(time: 10)->then(fn() => $this->execute());
             }

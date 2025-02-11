@@ -53,9 +53,7 @@ $Kline = new ContractKLineData($loop, [
 $logger = logger();
 
 $bbRsi = new BollingerRsiStrategy(
-    $Kline, 
-    $orderBook,
-    $logger,
+    $Kline,
     [
         'symbol' => $symbol,
         'side' => $side,
@@ -63,6 +61,7 @@ $bbRsi = new BollingerRsiStrategy(
         'leverage' => $leverage
     ]
 );
+
 $bbRsi->execute();
 
 // Run the event loop

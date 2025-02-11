@@ -18,13 +18,18 @@ use function React\Promise\Timer\sleep;
 trait OrderPlacement
 {
     private bool $isOrderInProgress = false;
-    private LoggerInterface $logger;
     private PlaceOrder $placeOrder;
     private ?TimerInterface $monitoringTimer = null;
 
+
     abstract public function execute();
 
-    public function placeOrder(float $currentPrice, array $options): void
+    public function init(array $options)
+    {
+        $this->placeOrder = new PlaceOrder($options['leverage']);
+    }
+
+    public function placeOrder(float $currentPrice): void
     {
         try {
             if ($this->isOrderInProgress) {
@@ -33,9 +38,7 @@ trait OrderPlacement
 
             $this->isOrderInProgress = true;
 
-            $this->placeOrder = new PlaceOrder($options['leverage']);
-
-            [$hasOpenPositions, $hasOpenOrders] = checkOpenPositionsAndOrders($options['symbol']);
+            [$hasOpenPositions, $hasOpenOrders] = checkOpenPositionsAndOrders($this->options['symbol']);
             if ($hasOpenPositions || $hasOpenOrders) {
                 sleep(time: $_ENV['COOL_DOWN_PERIOD'])->then(fn() => $this->execute());
                 return;
@@ -44,7 +47,7 @@ trait OrderPlacement
             $accountBalance = new AccountBalance();
             $userAccountBalance = await($accountBalance->getBalance());
             if (!$userAccountBalance || $userAccountBalance <= 0) {
-                $this->logger->error("Insufficient account balance.");
+                logger()->error("Insufficient account balance.");
                 $this->isOrderInProgress = false;
                 return;
             }
@@ -52,8 +55,8 @@ trait OrderPlacement
             $quantity = round((($userAccountBalance * 0.02) * $this->placeOrder->leverage) / $currentPrice, 3);
 
             $orderParams = [
-                'symbol' => $options['symbol'],
-                'side' => $options['side'],
+                'symbol' => $this->options['symbol'],
+                'side' => 'BUY',
                 'type' => 'MARKET',
                 'quantity' => $quantity,
                 'recvWindow' => 5000,
@@ -61,13 +64,13 @@ trait OrderPlacement
             ];
             
             $this->placeOrder->executeLeveragedOrder($orderParams)
-                ->then(function (ResponseInterface $response) use($options) {
+                ->then(function (ResponseInterface $response){
                     $this->isOrderInProgress = false;
-                    $this->startMonitoring($options['symbol']);
+                    $this->startMonitoring($this->options['symbol']);
                 });
         } catch (Throwable $e) {
             $this->isOrderInProgress = false;
-            $this->logger->error($e->getMessage());
+            logger()->error($e->getMessage());
         }
     }
 
@@ -82,7 +85,7 @@ trait OrderPlacement
             $positions = getPositionInfo($symbol);
             if (empty($positions)) {
                 $this->stopMonitoring();
-                $this->logger->info("No positons found for {$symbol}. Monitoring stopped.");
+                logger()->info("No positons found for {$symbol}. Monitoring stopped.");
                 return;
             }
         
@@ -97,17 +100,17 @@ trait OrderPlacement
             $precision = (int)$exchangeInfo['symbols'][0]['baseAssetPrecision'];
             $quantity = abs(round($positionAmt, $precision));
 
-            $this->logger->info($profitPercentage);
+            logger()->info($profitPercentage);
             // Take profit condition
-            if ($profitPercentage >= 15 || $profitPercentage <= 20) {
-                $this->logger->info('Should TP.');
+            if ($profitPercentage >= 0.2 && $profitPercentage <= 0.4) {
+                logger()->info('Should TP.');
                 $this->executeMarketOrder($symbol, $quantity);
                 return;
             }
 
             // // Stop loss condition
             if ($profitPercentage <= -15) {
-                $this->logger->info('Should SL.');
+                logger()->info('Should SL.');
                 $this->placeStopLossOrder($entryPrice, $symbol, $quantity);
                 return;
             }
@@ -123,11 +126,7 @@ trait OrderPlacement
             $this->isOrderInProgress = false;
             sleep($_ENV['COOL_DOWN_PERIOD'])
                 ->then(fn () => $this->execute());
-        }
-
-        $this->isOrderInProgress = false;
-        sleep($_ENV['COOL_DOWN_PERIOD'])
-            ->then(fn () => $this->execute());
+        }        
     }
 
     private function executeMarketOrder(string $symbol, float $quantity): void
@@ -148,7 +147,7 @@ trait OrderPlacement
                 $this->stopMonitoring();
             },
             function (Throwable $e) use ($symbol) {
-                $this->logger->error("Failed to execute order for {$symbol}: " . $e->getMessage());
+                logger()->error("Failed to execute order for {$symbol}: " . $e->getMessage());
                 $this->isOrderInProgress = false;
             }
         );
@@ -174,29 +173,35 @@ trait OrderPlacement
 
         $this->placeOrder->executeOrder($params)->then(
             function ($response) use ($symbol, $adjustedPrice) {
-                $this->logger->info("Stop loss executed at {$adjustedPrice} for {$symbol}");
+                logger()->info("Stop loss executed at {$adjustedPrice} for {$symbol}");
                 $this->stopMonitoring();
             },
             function (Throwable $e) use ($symbol) {
-                $this->logger->error("Failed to place stop loss for {$symbol}: " . $e->getMessage());
+                logger()->error("Failed to place stop loss for {$symbol}: " . $e->getMessage());
             }
         );
     }
 
-    public function recoverOpenPositions(array $options): void
+    public function recoverOpenPositions(array $options)
     {
-        try{
+        try {
+            // Await the result of getPositionInfo
             $positions = getPositionInfo($options['symbol']);
-            if (empty($positions)) {
-                $this->logger->info("No open positions found for {$options['symbol']}.");
+            
+            if (!empty($positions)) {
+                logger()->info("Open position found for {$options['symbol']}. Resuming monitoring.");
+            
+                $this->isOrderInProgress = true;
+                
+                $this->startMonitoring($options['symbol']);
+                
                 return;
-            }
+            } 
 
-            $this->logger->info("Open position found for {$options['symbol']}. Resuming monitoring.");
-            $this->startMonitoring($options['symbol']);
-
+            return;
         } catch (Throwable $e) {
-            $this->logger->error("Failed to recover open positions: " . $e->getMessage());
+            logger()->error("Failed to recover open positions: " . $e->getMessage());
         }
+       
     }
 }

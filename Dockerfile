@@ -9,7 +9,8 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     curl \
-    nano
+    nano \ 
+    htop
 
 # Copy project files to container
 COPY . /app

@@ -72,9 +72,10 @@ function checkOpenPositionsAndOrders(string $symbol): array
     }
 }
 
-function getPositionInfo(string $symbol): array
+function getPositionInfo(string $symbol)
 {
-    try {
+    $positionsToAwait = async(function () use($symbol){
+        try{
             $queryPositions = new QueryPositions();
             $positions = await($queryPositions->getPosition([
                 'symbol' => $symbol, 
@@ -86,11 +87,34 @@ function getPositionInfo(string $symbol): array
             }
 
             return $positions;
-    } catch (Throwable $e) {
-        error_log("Error fetching position info: " . $e->getMessage());
-        return [];
-    }
+        } catch (Throwable $e) {
+            logger()->error('Error querying positions: ' . $e->getMessage());
+            return [];
+        } 
+    });
+
+    return await($positionsToAwait());
 }
+
+// function getPositionInfo(string $symbol): array
+// {
+//     try {
+//             $queryPositions = new QueryPositions();
+//             $positions = await($queryPositions->getPosition([
+//                 'symbol' => $symbol, 
+//                 'timestamp' => time() * 1000
+//             ]));
+
+//             if (!is_array($positions) || empty($positions) || $positions[0]['positionAmt'] == 0) {
+//                 return [];
+//             }
+
+//             return $positions;
+//     } catch (Throwable $e) {
+//         error_log("Error fetching position info: " . $e->getMessage());
+//         return [];
+//     }
+// }
 
 /**
  * Get Bollinger Bands
