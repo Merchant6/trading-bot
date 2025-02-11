@@ -90,6 +90,7 @@ class ContractKLineData
 
                 if ($this->timer) {
                     $this->loop->cancelTimer($this->timer);
+                    $this->timer = null;
                 }
 
                 //Log The Exception

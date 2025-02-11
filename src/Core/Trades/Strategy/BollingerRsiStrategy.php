@@ -79,7 +79,7 @@ class BollingerRsiStrategy
             if ($tradeCondition) {
                 $this->placeOrder($currentPrice, $this->options);
             } else {
-                sleep(time: $_ENV['COOL_DOWN_PERIOD'])->then(fn() => $this->execute());
+                sleep(time: 10)->then(fn() => $this->execute());
             }
         });
     }
