@@ -99,18 +99,18 @@ trait OrderPlacement
 
             $this->logger->info($profitPercentage);
             // Take profit condition
-            // if ($profitPercentage >= 15 || $profitPercentage <= 20) {
-            //     $this->logger->info('Should TP.');
-            //     $this->executeMarketOrder($symbol, $quantity);
-            //     return;
-            // }
+            if ($profitPercentage >= 15 || $profitPercentage <= 20) {
+                $this->logger->info('Should TP.');
+                $this->executeMarketOrder($symbol, $quantity);
+                return;
+            }
 
             // // Stop loss condition
-            // if ($profitPercentage <= -15) {
-            //     $this->logger->info('Should SL.');
-            //     $this->placeStopLossOrder($entryPrice, $symbol, $quantity);
-            //     return;
-            // }
+            if ($profitPercentage <= -15) {
+                $this->logger->info('Should SL.');
+                $this->placeStopLossOrder($entryPrice, $symbol, $quantity);
+                return;
+            }
         }));
     }
 
