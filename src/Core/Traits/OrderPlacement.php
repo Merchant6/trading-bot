@@ -102,7 +102,7 @@ trait OrderPlacement
 
             logger()->info($profitPercentage);
             // Take profit condition
-            if ($profitPercentage >= 0.2 && $profitPercentage <= 0.4) {
+            if ($profitPercentage >= 15 && $profitPercentage <= 20) {
                 logger()->info('Should TP.');
                 $this->executeMarketOrder($symbol, $quantity);
                 return;

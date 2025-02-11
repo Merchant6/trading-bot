@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     curl \
-    nano \ 
+    nano \
     htop
 
 # Copy project files to container
@@ -17,6 +17,9 @@ COPY . /app
 
 # Ensure logs directory has the correct permissions
 RUN mkdir -p storage/logs && chmod -R 777 storage/logs
+
+# Create an empty .env file
+RUN touch /app/.env
 
 # Install Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
