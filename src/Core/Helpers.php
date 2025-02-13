@@ -1,5 +1,6 @@
 <?php
 
+use Merchant\TradingBot\Core\Utils\Cryptocurrency\Indicators\Rsi;
 use Merchant\TradingBot\Core\Utils\HttpClientManager;
 use Merchant\TradingBot\Core\Utils\Logger;
 use React\Http\Browser;
@@ -49,8 +50,16 @@ function checkOpenPositionsAndOrders(string $symbol): array
         $queryPositions = new QueryPositions();
         $openOrders = new OpenOrders();
 
-        $positions = await($queryPositions->getPosition(['symbol' => $symbol, 'timestamp' => time() * 1000])) ?? [];
-        $orders = await($openOrders->queryOpenOrders(['symbol' => $symbol, 'timestamp' => time() * 1000])) ?? [];
+        $positions = await($queryPositions->getPosition([
+            'symbol' => $symbol, 
+            'timestamp' => time() * 1000,
+            'recvWindow' => 20000,
+            ])) ?? [];
+        $orders = await($openOrders->queryOpenOrders([
+            'symbol' => $symbol, 
+            'timestamp' => time() * 1000,
+            'recvWindow' => 20000,
+            ])) ?? [];
 
         if (!is_array($positions)) {
             logger()->error("Unexpected response: positions is not an array", ['response' => $positions]);
@@ -79,7 +88,8 @@ function getPositionInfo(string $symbol)
             $queryPositions = new QueryPositions();
             $positions = await($queryPositions->getPosition([
                 'symbol' => $symbol, 
-                'timestamp' => time() * 1000
+                'timestamp' => time() * 1000,
+                'recvWindow' => 20000,
             ]));
 
             if (!is_array($positions) || empty($positions) || $positions[0]['positionAmt'] == 0) {
@@ -95,26 +105,6 @@ function getPositionInfo(string $symbol)
 
     return await($positionsToAwait());
 }
-
-// function getPositionInfo(string $symbol): array
-// {
-//     try {
-//             $queryPositions = new QueryPositions();
-//             $positions = await($queryPositions->getPosition([
-//                 'symbol' => $symbol, 
-//                 'timestamp' => time() * 1000
-//             ]));
-
-//             if (!is_array($positions) || empty($positions) || $positions[0]['positionAmt'] == 0) {
-//                 return [];
-//             }
-
-//             return $positions;
-//     } catch (Throwable $e) {
-//         error_log("Error fetching position info: " . $e->getMessage());
-//         return [];
-//     }
-// }
 
 /**
  * Get Bollinger Bands
@@ -170,6 +160,22 @@ function getExchangeInfo(string $symbol): array
 
     // Execute the async function and return the result.
     return await($fetchExchangeInfo());
+}
+
+/**
+ * Returns if RSI is overbought or oversold
+ * 
+ * @param array $realValues
+ * @param string $chartTimeInterval
+ * @param int $timePeriod
+ * @return bool
+ */
+function isRsiOversold(array $realValues, string $chartTimeInterval = '5m', int $timePeriod = 14)
+{
+  $rsi = new Rsi();
+  $rsi->calculate($realValues, $timePeriod);
+
+  return $rsi->isOverSold($chartTimeInterval);
 }
 
 /**

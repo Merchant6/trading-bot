@@ -65,6 +65,8 @@ class BollingerRsiStrategy
                 $this->stdDev
             );
             
+            $isOversold = isRsiOversold($closePrices);
+
             $lowerBand = round(end($bands['LowerBand']), 3);
             $middleBand = round(end($bands['MiddleBand']), 3);
             $currentPrice = round(end($closePrices), 3);
@@ -74,7 +76,8 @@ class BollingerRsiStrategy
             count($lastTwoPrices) === 2 && 
             $lastTwoPrices[0] > $lowerBand && 
             $lastTwoPrices[1] > $lowerBand &&
-            $currentPrice < $middleBand;
+            $currentPrice < $middleBand &&
+            $isOversold;
 
             if ($tradeCondition) {
                 $this->placeOrder($currentPrice);

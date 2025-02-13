@@ -59,7 +59,7 @@ trait OrderPlacement
                 'side' => 'BUY',
                 'type' => 'MARKET',
                 'quantity' => $quantity,
-                'recvWindow' => 5000,
+                'recvWindow' => 20000,
                 'timestamp' => time() * 1000
             ];
             
@@ -100,17 +100,14 @@ trait OrderPlacement
             $precision = (int)$exchangeInfo['symbols'][0]['baseAssetPrecision'];
             $quantity = abs(round($positionAmt, $precision));
 
-            logger()->info($profitPercentage);
             // Take profit condition
             if ($profitPercentage >= 15 && $profitPercentage <= 20) {
-                logger()->info('Should TP.');
                 $this->executeMarketOrder($symbol, $quantity);
                 return;
             }
 
             // // Stop loss condition
             if ($profitPercentage <= -15) {
-                logger()->info('Should SL.');
                 $this->placeStopLossOrder($entryPrice, $symbol, $quantity);
                 return;
             }
@@ -138,7 +135,7 @@ trait OrderPlacement
             'side' => 'SELL',
             'type' => 'MARKET',
             'quantity' => $quantity,
-            'recvWindow' => 5000,
+            'recvWindow' => 20000,
             'timestamp' => time() * 1000
         ];
 
@@ -167,7 +164,7 @@ trait OrderPlacement
             'side' => 'SELL',
             'type' => 'MARKET',
             'quantity' => round($quantity, $precision),
-            'recvWindow' => 5000,
+            'recvWindow' => 20000,
             'timestamp' => time() * 1000
         ];
 

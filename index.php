@@ -1,6 +1,7 @@
 <?php
 
 use Merchant\TradingBot\Core\Trades\Strategy\BollingerRsiStrategy;
+use Merchant\TradingBot\Core\Utils\Cryptocurrency\Indicators\Rsi;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\OrderBook;
 use React\EventLoop\Loop;
@@ -50,19 +51,28 @@ $Kline = new ContractKLineData($loop, [
     ]
 );
 
-$logger = logger();
+$Kline->details(function ($data) {
+    $rsi = new Rsi();
+    $rsi->calculate(array_column($data, 'close_price'));
 
-$bbRsi = new BollingerRsiStrategy(
-    $Kline,
-    [
-        'symbol' => $symbol,
-        'side' => $side,
-        'type' => $orderType,
-        'leverage' => $leverage
-    ]
-);
+    if($rsi->isOverSold()){
+        echo "OVERSOLD";
+    }
 
-$bbRsi->execute();
+    echo "OVERBOUGHT";
+});
+
+// $bbRsi = new BollingerRsiStrategy(
+//     $Kline,
+//     [
+//         'symbol' => $symbol,
+//         'side' => $side,
+//         'type' => $orderType,
+//         'leverage' => $leverage
+//     ]
+// );
+
+// $bbRsi->execute();
 
 // Run the event loop
 $loop->run();
