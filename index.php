@@ -51,28 +51,18 @@ $Kline = new ContractKLineData($loop, [
     ]
 );
 
-$Kline->details(function ($data) {
-    $rsi = new Rsi();
-    $rsi->calculate(array_column($data, 'close_price'));
 
-    if($rsi->isOverSold()){
-        echo "OVERSOLD";
-    }
+$bbRsi = new BollingerRsiStrategy(
+    $Kline,
+    [
+        'symbol' => $symbol,
+        'side' => $side,
+        'type' => $orderType,
+        'leverage' => $leverage
+    ]
+);
 
-    echo "OVERBOUGHT";
-});
-
-// $bbRsi = new BollingerRsiStrategy(
-//     $Kline,
-//     [
-//         'symbol' => $symbol,
-//         'side' => $side,
-//         'type' => $orderType,
-//         'leverage' => $leverage
-//     ]
-// );
-
-// $bbRsi->execute();
+$bbRsi->execute();
 
 // Run the event loop
 $loop->run();
