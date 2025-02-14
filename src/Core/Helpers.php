@@ -13,6 +13,7 @@ use React\Promise\PromiseInterface;
 
 use function React\Async\async;
 use function React\Async\await;
+use function React\Promise\resolve;
 
 /**
  * Generate a HMAC signature 
@@ -42,48 +43,56 @@ function http(): Browser
  * given symbol
  * 
  * @param string $symbol
- * @return array
+ * @return PromiseInterface
  */
-function checkOpenPositionsAndOrders(string $symbol): array
+function checkOpenPositionsAndOrders(string $symbol): PromiseInterface
 {
-    try {
-        $queryPositions = new QueryPositions();
-        $openOrders = new OpenOrders();
-
-        $positions = await($queryPositions->getPosition([
-            'symbol' => $symbol, 
-            'timestamp' => time() * 1000,
-            'recvWindow' => 20000,
+    return async(function() use ($symbol) {
+        try {
+            $queryPositions = new QueryPositions();
+            $openOrders = new OpenOrders();
+            $positions = await($queryPositions->getPosition([
+                'symbol' => $symbol,
+                'timestamp' => time() * 1000,
+                'recvWindow' => 20000,
             ])) ?? [];
-        $orders = await($openOrders->queryOpenOrders([
-            'symbol' => $symbol, 
-            'timestamp' => time() * 1000,
-            'recvWindow' => 20000,
+            $orders = await($openOrders->queryOpenOrders([
+                'symbol' => $symbol,
+                'timestamp' => time() * 1000,
+                'recvWindow' => 20000,
             ])) ?? [];
 
-        if (!is_array($positions)) {
-            logger()->error("Unexpected response: positions is not an array", ['response' => $positions]);
-            $positions = [];
+            if (!is_array($positions)) {
+                logger()->error("Unexpected response: positions is not an array", ['response' => $positions]);
+                $positions = [];
+            }
+            if (!is_array($orders)) {
+                logger()->error("Unexpected response: orders is not an array", ['response' => $orders]);
+                $orders = [];
+            }
+
+            $hasOpenPositions = !empty(array_filter($positions, fn($position) => 
+                isset($position['symbol']) && 
+                $position['symbol'] === $symbol && 
+                abs((float)$position['positionAmt']) > 0
+            ));
+
+            $hasOpenOrders = !empty(array_filter($orders, fn($order) => 
+                isset($order['symbol']) && 
+                $order['symbol'] === $symbol
+            ));
+
+            return [$hasOpenPositions, $hasOpenOrders];
+        } catch (Throwable $e) {
+            logger()->error("Error querying open positions and orders: {$e->getMessage()}");
+            return [false, false]; // Changed to return explicit boolean values instead of empty array
         }
-
-        if (!is_array($orders)) {
-            logger()->error("Unexpected response: orders is not an array", ['response' => $orders]);
-            $orders = [];
-        }
-
-        $hasOpenPositions = !empty(array_filter($positions, fn($position) => isset($position['symbol']) && $position['symbol'] === $symbol && abs((float)$position['positionAmt']) > 0));
-        $hasOpenOrders = !empty(array_filter($orders, fn($order) => isset($order['symbol']) && $order['symbol'] === $symbol));
-
-        return [$hasOpenPositions, $hasOpenOrders];
-    } catch (Throwable $e) {
-        logger()->error("Error querying open positions and orders: {$e->getMessage()}");
-        return []; // Return a default value instead of an empty array
-    }
+    })();
 }
 
-function getPositionInfo(string $symbol)
+function getPositionInfo(string $symbol): PromiseInterface
 {
-    $positionsToAwait = async(function () use($symbol){
+    return async(function () use($symbol){
         try{
             $queryPositions = new QueryPositions();
             $positions = await($queryPositions->getPosition([
@@ -101,9 +110,7 @@ function getPositionInfo(string $symbol)
             logger()->error('Error querying positions: ' . $e->getMessage());
             return [];
         } 
-    });
-
-    return await($positionsToAwait());
+    })();
 }
 
 /**
@@ -131,20 +138,19 @@ function getBollingerBands(array $closePrices, int $period, int $stdDev, int|str
  * @param string $symbol
  * @return PromiseInterface
  */
-function getExchangeInfo(string $symbol): array
+function getExchangeInfo(string $symbol): PromiseInterface
 {
     static $exchangeInfoCache = [];
 
     if (isset($exchangeInfoCache[$symbol])) {
-        return $exchangeInfoCache[$symbol];
+        return resolve($exchangeInfoCache[$symbol]);
     }
 
     $exchangeInfoApiUrl = 'https://api.binance.com/api/v3/exchangeInfo';
     $browser = http();
     
-    $fetchExchangeInfo = async(function () use ($browser, $exchangeInfoApiUrl, $symbol, &$exchangeInfoCache) {
+    return async(function () use ($browser, $exchangeInfoApiUrl, $symbol, &$exchangeInfoCache) {
         try {
-            /** @var ResponseInterface $response */
             $response = await($browser->get("$exchangeInfoApiUrl?symbol=$symbol"));
             
             $data = json_decode($response->getBody(), true);
@@ -156,10 +162,7 @@ function getExchangeInfo(string $symbol): array
             logger()->error("Error fetching exchange info for {$symbol}: " . $e->getMessage());
             return []; // Return an empty array on error.
         }
-    });
-
-    // Execute the async function and return the result.
-    return await($fetchExchangeInfo());
+    })();
 }
 
 /**

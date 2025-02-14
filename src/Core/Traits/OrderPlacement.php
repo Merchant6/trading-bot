@@ -38,7 +38,7 @@ trait OrderPlacement
 
             $this->isOrderInProgress = true;
 
-            [$hasOpenPositions, $hasOpenOrders] = checkOpenPositionsAndOrders($this->options['symbol']);
+            [$hasOpenPositions, $hasOpenOrders] = await(checkOpenPositionsAndOrders($this->options['symbol']));
             if ($hasOpenPositions || $hasOpenOrders) {
                 sleep(time: $_ENV['COOL_DOWN_PERIOD'])->then(fn() => $this->execute());
                 return;
@@ -82,7 +82,7 @@ trait OrderPlacement
 
         $this->monitoringTimer = Loop::addPeriodicTimer(0.5, async(function () use ($symbol) {
             // Prevent further execution if position has been closed
-            $positions = getPositionInfo($symbol);
+            $positions = await(getPositionInfo($symbol));
             if (empty($positions)) {
                 $this->stopMonitoring();
                 logger()->info("No positons found for {$symbol}. Monitoring stopped.");
@@ -96,7 +96,7 @@ trait OrderPlacement
 
             $profitPercentage = round((($currentPrice - $entryPrice) / $entryPrice) * 100 * $this->placeOrder->leverage, 3);
 
-            $exchangeInfo = getExchangeInfo($symbol);
+            $exchangeInfo = await(getExchangeInfo($symbol));
             $precision = (int)$exchangeInfo['symbols'][0]['baseAssetPrecision'];
             $quantity = abs(round($positionAmt, $precision));
 
@@ -155,7 +155,7 @@ trait OrderPlacement
         $this->isOrderInProgress = true;
 
         $stopLossPrice = $entryPrice * 0.65;
-        $exchangeInfo = getExchangeInfo($symbol);
+        $exchangeInfo = await(getExchangeInfo($symbol));
         $precision = (int)$exchangeInfo['symbols'][0]['baseAssetPrecision'];
         $adjustedPrice = round($stopLossPrice, $precision);
 
@@ -183,7 +183,7 @@ trait OrderPlacement
     {
         try {
             // Await the result of getPositionInfo
-            $positions = getPositionInfo($options['symbol']);
+            $positions = await(getPositionInfo($options['symbol']));
             
             if (!empty($positions)) {
                 logger()->info("Open position found for {$options['symbol']}. Resuming monitoring.");

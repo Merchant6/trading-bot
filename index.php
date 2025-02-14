@@ -4,12 +4,14 @@ use Merchant\TradingBot\Core\Trades\Strategy\BollingerRsiStrategy;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Indicators\Rsi;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\OrderBook;
+use Merchant\TradingBot\Core\Utils\ExchangeManager;
 use React\EventLoop\Loop;
+use function React\Async\await;
 
 require __DIR__ . "/vendor/autoload.php";
 
 //Initializing Dotenv
-$dotenv = Dotenv\Dotenv::createImmutable(__DIR__);
+$dotenv = Dotenv\Dotenv::createUnsafeImmutable(__DIR__);
 $dotenv->load();
 
 //Initializing the event loop
@@ -37,32 +39,42 @@ $interval = $options['interval'] ?? '5m';
 $limit = isset($options['limit']) ? (int)$options['limit'] : 100;
 $leverage = (int) $options['leverage'];
 
-$orderBook = new OrderBook($loop, [
-    'limit' => 100,
-    'symbol' => 'BTCUSDT',
-    'minPriceDiff' => 100
+// $Kline = new ContractKLineData($loop, [
+//         'pair' => $symbol, 
+//         'contractType' => $contractType, 
+//         'interval' => $interval, 
+//         'limit' => 100
+//     ]
+// );
+
+
+// $bbRsi = new BollingerRsiStrategy(
+//     $Kline,
+//     [
+//         'symbol' => $symbol,
+//         'side' => $side,
+//         'type' => $orderType,
+//         'leverage' => $leverage
+//     ]
+// );
+
+// $bbRsi->execute();
+
+$exchange = new ExchangeManager('binanceusdm', [
+    'apiKey' => getenv('BINANCE_API_KEY'),
+    'secret' => getenv('BINANCE_SECRET_KEY'),
+    'enableRateLimit' => getenv('RATE_LIMIT'),
+    'options' => [
+        'defaultType' => 'future',
+        'sandbox' => getenv('SANDBOX'),
+    ]
 ]);
+$exchange->getExchange()->set_sandbox_mode(getenv('SANDBOX'));
 
-$Kline = new ContractKLineData($loop, [
-        'pair' => $symbol, 
-        'contractType' => $contractType, 
-        'interval' => $interval, 
-        'limit' => 100
-    ]
-);
-
-
-$bbRsi = new BollingerRsiStrategy(
-    $Kline,
-    [
-        'symbol' => $symbol,
-        'side' => $side,
-        'type' => $orderType,
-        'leverage' => $leverage
-    ]
-);
-
-$bbRsi->execute();
+var_dump(await($exchange->fetchBalance()));
+// $loop->addPeriodicTimer(1, function () use($exchange, $symbol) {
+//     var_dump($exchange->fetchOrderBook($symbol, 1));
+// });
 
 // Run the event loop
 $loop->run();
