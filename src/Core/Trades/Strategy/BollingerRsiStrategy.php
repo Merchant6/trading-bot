@@ -5,6 +5,7 @@ namespace Merchant\TradingBot\Core\Trades\Strategy;
 use Merchant\TradingBot\Core\Traits\OrderPlacement;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\OrderBook;
+use Merchant\TradingBot\Core\Utils\ExchangeManager;
 use Psr\Log\LoggerInterface;
 use React\Promise\Timer;
 
@@ -17,11 +18,11 @@ class BollingerRsiStrategy
 {
     use OrderPlacement;
 
-    private int $period = 20;
-    private int $stdDev = 2;
+    public int $period = 20;
+    public int $stdDev = 2;
     
     public function __construct(
-        private ContractKLineData $contractKLineData,
+        public ExchangeManager $exchange,
         public array $options = []
     ) {
         $this->boot();
@@ -55,10 +56,10 @@ class BollingerRsiStrategy
      * Process trade logic based on Bollinger Bands and RSI conditions.
      */
     public function processTrade(): void
-    {
-        $this->contractKLineData->details(function (array $data) {
-            $closePrices = array_column($data, 'close_price');
-            
+    {   
+
+        $this->exchange->fetchContinuousClosePrice(function (array $closePrices) {
+
             $bands = getBollingerBands(
                 $closePrices, 
                 $this->period, 
@@ -79,11 +80,41 @@ class BollingerRsiStrategy
             $currentPrice < $middleBand &&
             $isOversold;
 
-            if ($tradeCondition) {
-                $this->placeOrder($currentPrice);
-            } else {
-                sleep(time: 10)->then(fn() => $this->execute());
-            }
-        });
+            // if ($tradeCondition) {
+            //     $this->placeOrder($currentPrice);
+            // } else {
+            //     sleep(time: 10)->then(fn() => $this->execute());
+            // }
+
+        }, $this->options['symbol']);
+        // $this->contractKLineData->details(function (array $data) {
+        //     $closePrices = array_column($data, 'close_price');
+            
+        //     $bands = getBollingerBands(
+        //         $closePrices, 
+        //         $this->period, 
+        //         $this->stdDev
+        //     );
+            
+        //     $isOversold = isRsiOversold($closePrices);
+
+        //     $lowerBand = round(end($bands['LowerBand']), 3);
+        //     $middleBand = round(end($bands['MiddleBand']), 3);
+        //     $currentPrice = round(end($closePrices), 3);
+        //     $lastTwoPrices = array_slice($closePrices, -2);
+
+        //     $tradeCondition = $currentPrice > $lowerBand && 
+        //     count($lastTwoPrices) === 2 && 
+        //     $lastTwoPrices[0] > $lowerBand && 
+        //     $lastTwoPrices[1] > $lowerBand &&
+        //     $currentPrice < $middleBand &&
+        //     $isOversold;
+
+        //     if ($tradeCondition) {
+        //         $this->placeOrder($currentPrice);
+        //     } else {
+        //         sleep(time: 10)->then(fn() => $this->execute());
+        //     }
+        // });
     }
 }

@@ -6,6 +6,8 @@ use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\OrderBook;
 use Merchant\TradingBot\Core\Utils\ExchangeManager;
 use React\EventLoop\Loop;
+
+use function React\Async\async;
 use function React\Async\await;
 
 require __DIR__ . "/vendor/autoload.php";
@@ -39,27 +41,6 @@ $interval = $options['interval'] ?? '5m';
 $limit = isset($options['limit']) ? (int)$options['limit'] : 100;
 $leverage = (int) $options['leverage'];
 
-// $Kline = new ContractKLineData($loop, [
-//         'pair' => $symbol, 
-//         'contractType' => $contractType, 
-//         'interval' => $interval, 
-//         'limit' => 100
-//     ]
-// );
-
-
-// $bbRsi = new BollingerRsiStrategy(
-//     $Kline,
-//     [
-//         'symbol' => $symbol,
-//         'side' => $side,
-//         'type' => $orderType,
-//         'leverage' => $leverage
-//     ]
-// );
-
-// $bbRsi->execute();
-
 $exchange = new ExchangeManager('binanceusdm', [
     'apiKey' => getenv('BINANCE_API_KEY'),
     'secret' => getenv('BINANCE_SECRET_KEY'),
@@ -71,10 +52,17 @@ $exchange = new ExchangeManager('binanceusdm', [
 ]);
 $exchange->getExchange()->set_sandbox_mode(getenv('SANDBOX'));
 
-var_dump(await($exchange->fetchBalance()));
-// $loop->addPeriodicTimer(1, function () use($exchange, $symbol) {
-//     var_dump($exchange->fetchOrderBook($symbol, 1));
-// });
+$bbRsi = new BollingerRsiStrategy(
+    $exchange,
+    [
+        'symbol' => $symbol,
+        'side' => $side,
+        'type' => $orderType,
+        'leverage' => $leverage
+    ]
+);
+
+$bbRsi->execute();
 
 // Run the event loop
 $loop->run();
