@@ -2,8 +2,10 @@
 
 namespace Merchant\TradingBot\Core\Traits;
 
+use ccxt\async\Exchange;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\AccountBalance;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\PlaceOrder;
+use Merchant\TradingBot\Core\Utils\ExchangeManager;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Log\LoggerInterface;
 use React\EventLoop\Loop;
@@ -14,22 +16,19 @@ use Throwable;
 use function React\Async\async;
 use function React\Async\await;
 use function React\Promise\Timer\sleep;
+use React\Promise\all;
 
 trait OrderPlacement
 {
     private bool $isOrderInProgress = false;
-    private PlaceOrder $placeOrder;
+    // private PlaceOrder $placeOrder;
     private ?TimerInterface $monitoringTimer = null;
+    private ExchangeManager $exchange;
 
 
     abstract public function execute();
 
-    public function init(array $options)
-    {
-        $this->placeOrder = new PlaceOrder($options['leverage']);
-    }
-
-    public function placeOrder(float $currentPrice): void
+    public function placeOrder(float $currentPrice, ExchangeManager $exchange): void
     {
         try {
             if ($this->isOrderInProgress) {
@@ -38,21 +37,20 @@ trait OrderPlacement
 
             $this->isOrderInProgress = true;
 
-            [$hasOpenPositions, $hasOpenOrders] = await(checkOpenPositionsAndOrders($this->options['symbol']));
+            [$hasOpenPositions, $hasOpenOrders] = await($exchange->fetchOpenOrdersAndPositions($this->options['symbol']));
             if ($hasOpenPositions || $hasOpenOrders) {
-                sleep(time: $_ENV['COOL_DOWN_PERIOD'])->then(fn() => $this->execute());
+                sleep(time: getenv('COOL_DOWN_PERIOD'))->then(fn() => $this->execute());
                 return;
             }
 
-            $accountBalance = new AccountBalance();
-            $userAccountBalance = await($accountBalance->getBalance());
-            if (!$userAccountBalance || $userAccountBalance <= 0) {
+            $userAccountBalance = await($exchange->fetchBalance());
+            if (!$userAccountBalance) {
                 logger()->error("Insufficient account balance.");
                 $this->isOrderInProgress = false;
                 return;
             }
 
-            $quantity = round((($userAccountBalance * 0.02) * $this->placeOrder->leverage) / $currentPrice, 3);
+            $quantity = round((($userAccountBalance * 0.02) * $this->placeOrder->leverage) / $currentPrice, 4);
 
             $orderParams = [
                 'symbol' => $this->options['symbol'],
@@ -63,11 +61,17 @@ trait OrderPlacement
                 'timestamp' => time() * 1000
             ];
             
-            $this->placeOrder->executeLeveragedOrder($orderParams)
-                ->then(function (ResponseInterface $response){
-                    $this->isOrderInProgress = false;
-                    $this->startMonitoring($this->options['symbol']);
-                });
+            $exchange->placeOrder(
+                $this->options['symbol'], 
+                $this->options['side'], 
+                $this->options['ordertype'],
+                $this->options['leverage'], 
+            )
+            ->then(function () {
+                $this->isOrderInProgress = false;
+                $this->startMonitoring($this->options['symbol']);
+            });
+            
         } catch (Throwable $e) {
             $this->isOrderInProgress = false;
             logger()->error($e->getMessage());

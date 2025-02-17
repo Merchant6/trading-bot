@@ -1,9 +1,6 @@
 <?php
 
 use Merchant\TradingBot\Core\Trades\Strategy\BollingerRsiStrategy;
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\Indicators\Rsi;
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\OrderBook;
 use Merchant\TradingBot\Core\Utils\ExchangeManager;
 use React\EventLoop\Loop;
 
@@ -52,17 +49,19 @@ $exchange = new ExchangeManager('binanceusdm', [
 ]);
 $exchange->getExchange()->set_sandbox_mode(getenv('SANDBOX'));
 
-$bbRsi = new BollingerRsiStrategy(
-    $exchange,
-    [
-        'symbol' => $symbol,
-        'side' => $side,
-        'type' => $orderType,
-        'leverage' => $leverage
-    ]
-);
+// $bbRsi = new BollingerRsiStrategy(
+//     $exchange,
+//     [
+//         'symbol' => $symbol,
+//         'side' => $side,
+//         'type' => $orderType,
+//         'leverage' => $leverage
+//     ]
+// );
 
-$bbRsi->execute();
+// $bbRsi->execute();
+
+
 
 // Run the event loop
 $loop->run();

@@ -35,7 +35,7 @@ class BollingerRsiStrategy
     {
         $this->period = $this->options['period'] ?? $this->period;
         $this->stdDev = $this->options['stdDev'] ?? $this->stdDev;
-        $this->init($this->options);
+        // $this->init($this->options);
     }
 
     /**

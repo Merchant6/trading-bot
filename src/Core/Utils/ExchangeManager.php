@@ -12,6 +12,7 @@ use Throwable;
 use function React\Async\async;
 use function React\Async\await;
 use function React\Promise\Timer\sleep;
+use function React\Promise\all;
 
 class ExchangeManager
 {
@@ -278,6 +279,26 @@ class ExchangeManager
                 return await($this->exchange->fetch_positions([$symbol]));
             } catch (Throwable $e) {
                 logger()->error("Error fetching open positions for {$symbol}: " . $e->getMessage());
+            }
+        })();
+    }
+
+    /**
+     * Fetch open orders and positions for the given symbol
+     * 
+     * @param string $symbol
+     * @return PromiseInterface
+     */
+    public function fetchOpenOrdersAndPositions(string $symbol): PromiseInterface
+    {
+        return async(function () use ($symbol) {
+            try {
+                return await(all([
+                    $this->fetchOpenOrders($symbol),
+                    $this->fetchOpenPositions($symbol),
+                ]));
+            } catch (Throwable $e) {
+                logger()->error("Error fetching open orders and positions for {$symbol}: " . $e->getMessage());
             }
         })();
     }
