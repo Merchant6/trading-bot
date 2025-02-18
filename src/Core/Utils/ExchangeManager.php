@@ -77,6 +77,24 @@ class ExchangeManager
     }
 
     /**
+     * Set leverage for a specified symbol
+     * 
+     * @param string $symbol
+     * @param int $leverage
+     * @return PromiseInterface
+     */
+    public function setLeverage(string $symbol, int $leverage = 10): PromiseInterface
+    {
+        return async(function () use($symbol, $leverage) {
+            try {
+                return await($this->exchange->set_leverage($leverage, $symbol));
+            } catch (Throwable $e) {
+                logger()->error("Error setting leverage: " . $e->getMessage());
+            }
+        })();
+    }
+
+    /**
      * Place an order
      * 
      * @param string $symbol
@@ -205,7 +223,8 @@ class ExchangeManager
             Loop::get()->cancelTimer($timer);
         }
 
-        $timer = Loop::get()->addPeriodicTimer(getenv('POLLING_INTERVAL'), async(function () use ($callback, $symbol, $timeframe, $since, $limit, $params, &$timer) {
+        $interval = timeframeToSeconds($timeframe);
+        $timer = Loop::get()->addPeriodicTimer($interval, async(function () use ($callback, $symbol, $timeframe, $since, $limit, $params, &$timer) {
             try{
                 $ohlcv = await($this->fetchClosePrice(
                     $symbol, 

@@ -43,7 +43,7 @@ class BollingerRsiStrategy
      */
     public function execute(): void
     {   
-        $this->recoverOpenPositions($this->options);
+        $this->recoverOpenPositions($this->options, $this->exchange);
 
         if ($this->isOrderInProgress) {
             return;
@@ -80,41 +80,12 @@ class BollingerRsiStrategy
             $currentPrice < $middleBand &&
             $isOversold;
 
-            // if ($tradeCondition) {
-            //     $this->placeOrder($currentPrice);
-            // } else {
-            //     sleep(time: 10)->then(fn() => $this->execute());
-            // }
+            if ($tradeCondition) {
+                $this->placeOrder($this->exchange);
+            } else {
+                sleep(time: 10)->then(fn() => $this->execute());
+            }
 
         }, $this->options['symbol']);
-        // $this->contractKLineData->details(function (array $data) {
-        //     $closePrices = array_column($data, 'close_price');
-            
-        //     $bands = getBollingerBands(
-        //         $closePrices, 
-        //         $this->period, 
-        //         $this->stdDev
-        //     );
-            
-        //     $isOversold = isRsiOversold($closePrices);
-
-        //     $lowerBand = round(end($bands['LowerBand']), 3);
-        //     $middleBand = round(end($bands['MiddleBand']), 3);
-        //     $currentPrice = round(end($closePrices), 3);
-        //     $lastTwoPrices = array_slice($closePrices, -2);
-
-        //     $tradeCondition = $currentPrice > $lowerBand && 
-        //     count($lastTwoPrices) === 2 && 
-        //     $lastTwoPrices[0] > $lowerBand && 
-        //     $lastTwoPrices[1] > $lowerBand &&
-        //     $currentPrice < $middleBand &&
-        //     $isOversold;
-
-        //     if ($tradeCondition) {
-        //         $this->placeOrder($currentPrice);
-        //     } else {
-        //         sleep(time: 10)->then(fn() => $this->execute());
-        //     }
-        // });
     }
 }

@@ -38,6 +38,28 @@ function http(): Browser
     return HttpClientManager::getBrowser();
 }
 
+function timeframeToSeconds(string $timeframe): int
+{   
+    //We only need timeframe upto weeks
+    $units = [
+        's' => 1,         // seconds
+        'm' => 60,        // minutes
+        'h' => 3600,      // hours
+        'd' => 86400,     // days
+        'w' => 604800,    // weeks
+    ];
+
+    preg_match('/(\d+)([smhdwMy])/', strtolower($timeframe), $matches);
+
+    if (!$matches) {
+        throw new InvalidArgumentException("Invalid timeframe format: $timeframe");
+    }
+
+    [$full, $value, $unit] = $matches;
+
+    return (int)$value * $units[$unit];
+}
+
 /**
  * Check for open positions and orders for a 
  * given symbol
