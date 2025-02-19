@@ -65,7 +65,7 @@ class ExchangeManager
                 $balances = await($this->fetchBalance());
                 
                 if (!is_array($balances)) {
-                    throw new Exception("Invalid balance response from Binance API");
+                    throw new Exception("Invalid balance response from API");
                 }
 
                 $balance = $balances[$asset] ?? 0;
