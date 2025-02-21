@@ -104,16 +104,17 @@ class ExchangeManager
      * @param mixed $price
      * @return PromiseInterface
      */
-    public function placeOrder(string $symbol, string $type, string $side, float $amount, ?float $price = null): PromiseInterface
+    public function placeOrder(string $symbol, string $type, string $side, float $amount, ?float $price = null, ?array $params = []): PromiseInterface
     {
-        return async(function () use ($symbol, $type, $side, $amount, $price) {
+        return async(function () use ($symbol, $type, $side, $amount, $price, $params) {
             try{
                 return await($this->exchange->create_order(
                     $symbol, 
                     $type, 
                     $side, 
                     $amount, 
-                    $price
+                    $price,
+                    $params
                 ));
             } catch (Throwable $e) {
                 logger()->error("Error placing order for {$symbol}: " . $e->getMessage());
@@ -223,7 +224,7 @@ class ExchangeManager
             Loop::get()->cancelTimer($timer);
         }
 
-        $interval = timeframeToSeconds($timeframe);
+        $interval = getenv('POLLING_INTERVAL');
         $timer = Loop::get()->addPeriodicTimer($interval, async(function () use ($callback, $symbol, $timeframe, $since, $limit, $params, &$timer) {
             try{
                 $ohlcv = await($this->fetchClosePrice(

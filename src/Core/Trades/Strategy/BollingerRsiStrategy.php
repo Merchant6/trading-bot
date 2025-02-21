@@ -65,7 +65,7 @@ class BollingerRsiStrategy
                 $this->period, 
                 $this->stdDev
             );
-            
+
             $isOversold = isRsiOversold($closePrices);
 
             $lowerBand = round(end($bands['LowerBand']), 3);
@@ -73,15 +73,15 @@ class BollingerRsiStrategy
             $currentPrice = round(end($closePrices), 3);
             $lastTwoPrices = array_slice($closePrices, -2);
 
-            $tradeCondition = $currentPrice > $lowerBand && 
-            count($lastTwoPrices) === 2 && 
-            $lastTwoPrices[0] > $lowerBand && 
-            $lastTwoPrices[1] > $lowerBand &&
-            $currentPrice < $middleBand &&
-            $isOversold;
-
-            if ($tradeCondition) {
-                $this->placeOrder($this->exchange);
+            // $tradeCondition = $currentPrice > $lowerBand && 
+            // count($lastTwoPrices) === 2 && 
+            // $lastTwoPrices[0] > $lowerBand && 
+            // $lastTwoPrices[1] > $lowerBand &&
+            // $currentPrice < $middleBand &&
+            // $isOversold;
+            // $tradeCondition = true;
+            if (true) {
+                $this->placeOrder($currentPrice, $this->exchange);
             } else {
                 sleep(time: 10)->then(fn() => $this->execute());
             }

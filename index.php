@@ -17,62 +17,57 @@ $dotenv->load();
 $loop = Loop::get();
 
 $options = getopt("", [
-    "symbol:",       // Required
+    "symbol::",       // Required
     "side::",        // Optional (default: BUY)
     "ordertype::",   // Optional (default: MARKET)
     "contractType::",// Optional (default: PERPETUAL)
     "interval::",    // Optional (default: 5m)
     "limit::",       // Optional (default: 100)
-    "leverage:",     // Required
+    "leverage::",     // Required
     "amountPercentage::", // Optional (default: 5)
 ]);
 
-if (!isset($options['symbol']) || !isset($options['leverage'])) {
-    die("Error: Missing required parameters --symbol and --leverage.\n");
-}
+// if (!isset($options['symbol']) || !isset($options['leverage'])) {
+//     die("Error: Missing required parameters --symbol and --leverage.\n");
+// }
 
-$symbol = $options['symbol'];
+$symbol = $options['symbol'] ?? 'BTCUSDT';
 $side = $options['side'] ?? 'BUY';
 $orderType = $options['ordertype'] ?? 'MARKET';
 $contractType = $options['contractType'] ?? 'PERPETUAL';
 $interval = $options['interval'] ?? '5m';
 $limit = isset($options['limit']) ? (int)$options['limit'] : 100;
-$leverage = (int) $options['leverage'];
-$amountPercentage = isset($options['amountPercentage']) ? (int)$options['amountPercentage'] : 20;
+$leverage = isset($options['leverage']) ? (int)$options['leverage'] : 10;;
+$amountPercentage = isset($options['amountPercentage']) ? (int)$options['amountPercentage'] : 25;
 
-$exchange = new ExchangeManager('bitget', [
-    'apiKey' => getenv('BITGET_API_KEY'),
-    'secret' => getenv('BITGET_SECRET_KEY'),
-    'password' => getenv('BITGET_PASSWORD'),
+$exchange = new ExchangeManager('binanceusdm', [
+    'apiKey' => getenv('BINANCE_API_KEY'),
+    'secret' => getenv('BINANCE_SECRET_KEY'),
     'enableRateLimit' => getenv('RATE_LIMIT'),
-    // 'verbose' => true,
+    'verbose' => true,
     'options' => [
-        'defaultType' => 'swap',
         'recvWindow' => 20000,
-    ],
-    'headers' => [
-        'paptrading' => 1
+        'marginType' => 'cross',
     ],
 ]);
+
 $exchange->getExchange()->set_sandbox_mode(true);
 
-// $bbRsi = new BollingerRsiStrategy(
-//     $exchange,
-//     [
-//         'symbol' => $symbol,
-//         'side' => $side,
-//         'type' => $orderType,
-//         'contractType' => $contractType,
-//         'interval' => $interval,
-//         'limit' => $limit,
-//         'leverage' => $leverage,
-//         'amountPercentage' => $amountPercentage
-//     ]
-// );
+$bbRsi = new BollingerRsiStrategy(
+    $exchange,
+    [
+        'symbol' => $symbol,
+        'side' => $side,
+        'type' => $orderType,
+        'contractType' => $contractType,
+        'interval' => $interval,
+        'limit' => $limit,
+        'leverage' => $leverage,
+        'amountPercentage' => $amountPercentage
+    ]
+);
 
-// $bbRsi->execute();
-
-var_dump(await($exchange->fetchBalance()));
+$bbRsi->execute();
 
 // Run the event loop
 $loop->run();

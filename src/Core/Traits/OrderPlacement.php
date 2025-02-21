@@ -2,12 +2,7 @@
 
 namespace Merchant\TradingBot\Core\Traits;
 
-use ccxt\async\Exchange;
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\AccountBalance;
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\Futures\PlaceOrder;
 use Merchant\TradingBot\Core\Utils\ExchangeManager;
-use Psr\Http\Message\ResponseInterface;
-use Psr\Log\LoggerInterface;
 use React\EventLoop\Loop;
 use React\EventLoop\TimerInterface;
 use React\Promise\Timer;
@@ -25,7 +20,7 @@ trait OrderPlacement
     
     abstract public function execute();
 
-    public function placeOrder(ExchangeManager $exchange): void
+    public function placeOrder(float $currentPrice, ExchangeManager $exchange): void
     {
         try {
             if ($this->isOrderInProgress) {
@@ -49,10 +44,10 @@ trait OrderPlacement
 
             /**
              * Calculate the amount to trade based on the user's account balance
-             * Formula: (accountBalance * (amountPercentage / 100)) * leverage
-             * e.g. (1000 * (5 / 100)) * 10 = 500
+             * Formula: (accountBalance * (amountPercentage / 100)), leverage is automatically applied
+             * e.g. (1000 * (5 / 100)) = 500
              */
-            $this->options['amount'] = ($userAccountBalance * ($this->options['amountPercentage'] / 100)) * $this->options['leverage'];
+            $this->options['amount'] = round(($userAccountBalance * ($this->options['amountPercentage'] / 100)) / $currentPrice, 4);
             $this->openPosition($exchange);
             
         } catch (Throwable $e) {
@@ -67,7 +62,7 @@ trait OrderPlacement
             return; // Avoid duplicate monitoring timers or concurrent orders
         }
 
-        $this->monitoringTimer = Loop::addPeriodicTimer(0.5, async(function () use ($symbol, $exchange) {
+        $this->monitoringTimer = Loop::addPeriodicTimer(getenv('POLLING_INTERVAL'), async(function () use ($symbol, $exchange) {
             // Prevent further execution if position has been closed
             $positions = await($exchange->fetchOpenPositions($symbol));
             if (empty($positions)) {
@@ -80,14 +75,18 @@ trait OrderPlacement
             $quantity = (float)array_column($positions, 'contracts')[0];
             $entryPrice = (float)array_column($positions, 'entryPrice')[0];
 
+            if(!isset($this->options['amount']) || $this->options['amount'] === null){
+                $this->options['amount'] = $quantity;
+            }
+
             // Take profit condition
-            if ($profitPercentage >= 15 && $profitPercentage <= 20) {
+            if ($profitPercentage >= (float)getenv('MIN_PROFIT') && $profitPercentage <= (float)getenv('MAX_PROFIT')) {
                 $this->takeProfitStopLossOrder($exchange);
                 return;
             }
 
             // // Stop loss condition
-            if ($profitPercentage <= -15) {
+            if ($profitPercentage <= (float)getenv('MAX_LOSS')) {
                 $this->takeProfitStopLossOrder($exchange);
                 return;
             }
@@ -107,14 +106,14 @@ trait OrderPlacement
     }
 
     public function openPosition(ExchangeManager $exchange): void
-    {
+    {   
         $exchange->setLeverage($this->options['symbol'], $this->options['leverage'])
             ->then(fn() => 
                 $exchange->placeOrder(
                     $this->options['symbol'], 
-                    $this->options['side'], 
                     $this->options['type'], 
-                    $this->options['amount']
+                    $this->options['side'], 
+                    $this->options['amount'],
                 )
             )
             ->then(fn() => 
@@ -133,11 +132,12 @@ trait OrderPlacement
         $symbol = $this->options['symbol'];
         $side = $this->options['side']; // Original position side (buy/sell)
         $amount = $this->options['amount']; // Position size
+        $type = $this->options['type']; // Order type (MARKET/LIMIT)
     
         // Determine inverse side
         $inverseSide = ($side === 'BUY') ? 'SELL' : 'BUY';
     
-        $exchange->placeOrder($symbol, $inverseSide, $this->options['type'], $amount)
+        $exchange->placeOrder($symbol, $type, $inverseSide, $amount)
             ->then(fn() => 
                 $this->stopMonitoring()
             )
