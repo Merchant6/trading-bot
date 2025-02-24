@@ -10,7 +10,18 @@ RUN apt-get update && apt-get install -y \
     git \
     curl \
     nano \
-    htop
+    htop \
+    libgmp-dev \
+    libcurl4-openssl-dev \
+    libssl-dev \
+    && docker-php-ext-install \
+    bcmath \
+    curl \
+    gmp \
+    iconv \
+    json \
+    openssl \
+    pcre
 
 # Copy project files to container
 COPY . /app
