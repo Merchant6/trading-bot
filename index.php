@@ -44,7 +44,6 @@ $exchange = new ExchangeManager('binanceusdm', [
     'apiKey' => getenv('BINANCE_API_KEY'),
     'secret' => getenv('BINANCE_SECRET_KEY'),
     'enableRateLimit' => getenv('RATE_LIMIT'),
-    'verbose' => true,
     'options' => [
         'recvWindow' => 20000,
         'marginType' => 'cross',
