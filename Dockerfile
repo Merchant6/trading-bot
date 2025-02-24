@@ -21,7 +21,6 @@ RUN apt-get update && apt-get install -y \
     iconv \
     json \
     openssl \
-    pcre
 
 # Copy project files to container
 COPY . /app
