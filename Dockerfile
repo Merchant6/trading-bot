@@ -15,12 +15,7 @@ RUN apt-get update && apt-get install -y \
     libcurl4-openssl-dev \
     libssl-dev \
     && docker-php-ext-install \
-    bcmath \
-    curl \
-    gmp \
-    iconv \
-    json \
-    openssl \
+    bcmath
 
 # Copy project files to container
 COPY . /app
