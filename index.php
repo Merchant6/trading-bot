@@ -17,28 +17,29 @@ $dotenv->load();
 $loop = Loop::get();
 
 $options = getopt("", [
-    "symbol::",       // Required
+    "symbol:",       // Required
     "side::",        // Optional (default: BUY)
     "ordertype::",   // Optional (default: MARKET)
     "contractType::",// Optional (default: PERPETUAL)
     "interval::",    // Optional (default: 5m)
     "limit::",       // Optional (default: 100)
-    "leverage::",     // Required
+    "leverage::",     // Optional (default: 10)
     "amountPercentage::", // Optional (default: 5)
 ]);
 
-// if (!isset($options['symbol']) || !isset($options['leverage'])) {
-//     die("Error: Missing required parameters --symbol and --leverage.\n");
-// }
 
-$symbol = $options['symbol'] ?? 'BTCUSDT';
+if (!isset($options['symbol'])) {
+    die("Error: Missing required parameters --symbol.\n");
+}
+
+$symbol = $options['symbol'] . ":USDT";
 $side = $options['side'] ?? 'BUY';
 $orderType = $options['ordertype'] ?? 'MARKET';
 $contractType = $options['contractType'] ?? 'PERPETUAL';
 $interval = $options['interval'] ?? '5m';
 $limit = isset($options['limit']) ? (int)$options['limit'] : 100;
 $leverage = isset($options['leverage']) ? (int)$options['leverage'] : 10;;
-$amountPercentage = isset($options['amountPercentage']) ? (int)$options['amountPercentage'] : 25;
+$amountPercentage = isset($options['amountPercentage']) ? (int)$options['amountPercentage'] : 20;
 
 $exchange = new ExchangeManager('binanceusdm', [
     'apiKey' => getenv('BINANCE_API_KEY'),
@@ -51,6 +52,10 @@ $exchange = new ExchangeManager('binanceusdm', [
 ]);
 
 $exchange->getExchange()->set_sandbox_mode(true);
+
+if(await($exchange->hasSymbol($symbol)) === false) {
+    die("Error: Symbol $symbol is not available on the exchange.\n");
+}
 
 $bbRsi = new BollingerRsiStrategy(
     $exchange,

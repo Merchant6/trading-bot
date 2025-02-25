@@ -322,4 +322,35 @@ class ExchangeManager
             }
         })();
     }
+    
+    public function fetchMarketSymbols(): PromiseInterface
+    {
+        static $symbols = null;
+
+        return async(function () use (&$symbols) {
+            if ($symbols !== null) {
+                return $symbols;
+            }
+
+            try {
+                $symbols = await($this->exchange->load_markets());
+                return $symbols;
+            } catch (Throwable $e) {
+                logger()->error("Error fetching market symbols: " . $e->getMessage());
+            }
+        })();
+    }
+
+    public function hasSymbol(string $symbol)
+    {
+        return async(function () use ($symbol) {
+            try {
+                $markets = await($this->fetchMarketSymbols());
+                return in_array($symbol, array_keys($markets));
+            } catch (Throwable $e) {
+                logger()->error("Error checking symbol: " . $e->getMessage());
+                return false;
+            }
+        })();
+    }
 }

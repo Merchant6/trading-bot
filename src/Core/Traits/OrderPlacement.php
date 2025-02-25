@@ -203,7 +203,7 @@ trait OrderPlacement
     {
         try {
             // Await the result of getPositionInfo
-            $positions = await(getPositionInfo($options['symbol']));
+            $positions = await($exchange->fetchOpenPositions($options['symbol']));
             
             if (!empty($positions)) {
                 logger()->info("Open position found for {$options['symbol']}. Resuming monitoring.");
