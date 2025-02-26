@@ -71,7 +71,15 @@ $bbRsi = new BollingerRsiStrategy(
     ]
 );
 
-$bbRsi->execute();
+/**
+ * Execute the execute() method of any strategy inside
+ * a async function, so it should be non blocking. 
+ * Everything inside this function will still be blocked,
+ * when using await() but everything outside this function 
+ * can be executed asynchronously without blocking:
+ * 
+ */
+async(fn () => await($bbRsi->execute()))();
 
 // Run the event loop
 $loop->run();

@@ -7,8 +7,11 @@ use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\OrderBook;
 use Merchant\TradingBot\Core\Utils\ExchangeManager;
 use Psr\Log\LoggerInterface;
+use React\Promise\PromiseInterface;
 use React\Promise\Timer;
 
+use function React\Async\async;
+use function React\Async\await;
 use function React\Promise\Timer\sleep;
 
 /**
@@ -41,15 +44,17 @@ class BollingerRsiStrategy
     /**
      * Main entry point for executing the strategy.
      */
-    public function execute(): void
+    public function execute(): PromiseInterface 
     {   
-        $this->recoverOpenPositions($this->options, $this->exchange);
+        return async(function () {
+            await($this->recoverOpenPositions($this->options, $this->exchange));
 
-        if ($this->isOrderInProgress) {
-            return;
-        }
+            if ($this->isOrderInProgress) {
+                return;
+            }
 
-        $this->processTrade();
+            $this->processTrade();
+        })();
     }
 
     /**

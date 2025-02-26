@@ -12,6 +12,7 @@ use function React\Async\async;
 use function React\Async\await;
 use function React\Promise\Timer\sleep;
 use React\Promise\all;
+use React\Promise\PromiseInterface;
 
 trait OrderPlacement
 {
@@ -74,7 +75,7 @@ trait OrderPlacement
             $profitPercentage = (float)array_column($positions, 'percentage')[0];
             $quantity = (float)array_column($positions, 'contracts')[0];
             $entryPrice = (float)array_column($positions, 'entryPrice')[0];
-
+            
             if(!isset($this->options['amount']) || $this->options['amount'] === null){
                 $this->options['amount'] = $quantity;
             }
@@ -199,26 +200,27 @@ trait OrderPlacement
     //     );
     // }
 
-    public function recoverOpenPositions(array $options, ExchangeManager $exchange): void
+    public function recoverOpenPositions(array $options, ExchangeManager $exchange): PromiseInterface
     {
-        try {
-            // Await the result of getPositionInfo
-            $positions = await($exchange->fetchOpenPositions($options['symbol']));
-            
-            if (!empty($positions)) {
-                logger()->info("Open position found for {$options['symbol']}. Resuming monitoring.");
-            
-                $this->isOrderInProgress = true;
+        return async(function () use($options, $exchange) {
+            try {
+                // Await the result of getPositionInfo
+                $positions = await($exchange->fetchOpenPositions($options['symbol']));
                 
-                $this->startMonitoring($options['symbol'], $exchange);
+                if (!empty($positions)) {
+                    logger()->info("Open position found for {$options['symbol']}. Resuming monitoring.");
                 
+                    $this->isOrderInProgress = true;
+                    
+                    $this->startMonitoring($options['symbol'], $exchange);
+                    
+                    return;
+                } 
+    
                 return;
-            } 
-
-            return;
-        } catch (Throwable $e) {
-            logger()->error("Failed to recover open positions: " . $e->getMessage());
-        }
-       
+            } catch (Throwable $e) {
+                logger()->error("Failed to recover open positions: " . $e->getMessage());
+            }
+        })();       
     }
 }
