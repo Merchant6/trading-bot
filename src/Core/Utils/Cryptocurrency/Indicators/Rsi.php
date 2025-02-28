@@ -37,11 +37,14 @@ class Rsi
      * @return bool
      */
     public function isOverSold(string $chartTimeInterval = '5m')
-    {
+    {   
+        $minRsiValue = getenv('MIN_RSI_VALUE') ?? 25;
+        $maxRsiValue = getenv('MAX_RSI_VALUE') ?? 30;
+        
         if($chartTimeInterval == '1m' || $chartTimeInterval == '5m'){
-            return $this->currentValue >= 25 && $this->currentValue <= 30;
+            return $this->currentValue >= $minRsiValue && $this->currentValue <= $maxRsiValue;
         }
 
-        return $this->currentValue >= 25 && $this->currentValue <= 30; 
+        return $this->currentValue >= $minRsiValue && $this->currentValue <= $maxRsiValue; 
     }
 }

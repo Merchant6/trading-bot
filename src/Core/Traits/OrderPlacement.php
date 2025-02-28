@@ -216,7 +216,7 @@ trait OrderPlacement
                     
                     return;
                 } 
-    
+                
                 return;
             } catch (Throwable $e) {
                 logger()->error("Failed to recover open positions: " . $e->getMessage());
