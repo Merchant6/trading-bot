@@ -17,7 +17,7 @@ class Logger implements LoggerInterface
     public function __construct()
     {
         $this->logger = new MonoLogger('logger');
-        $this->createLogFile();
+        // $this->createLogFile();
         $this->logger->pushHandler(new StreamHandler(__DIR__ . '/../../../storage/logs/app.log', Level::Debug));
     }
 
@@ -77,17 +77,17 @@ class Logger implements LoggerInterface
         $this->logger->log($level, $message, $context);
     }
 
-    /**
-     * Create a new log file if not already created
-     *
-     * @return void
-     */
-    public function createLogFile(): void
-    {
-        $file = __DIR__ . '/../../../storage/logs/app.log';
+    // /**
+    //  * Create a new log file if not already created
+    //  *
+    //  * @return void
+    //  */
+    // public function createLogFile(): void
+    // {
+    //     $file = __DIR__ . '/../../../storage/logs/app.log';
 
-        if (!file_exists($file)) {
-            touch($file, time());
-        }
-    }
+    //     if (!file_exists($file)) {
+    //         touch($file, time());
+    //     }
+    // }
 }

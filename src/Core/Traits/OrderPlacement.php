@@ -23,38 +23,40 @@ trait OrderPlacement
 
     public function placeOrder(float $currentPrice, ExchangeManager $exchange): void
     {
-        try {
-            if ($this->isOrderInProgress) {
-                return;
-            }
-
-            $this->isOrderInProgress = true;
-
-            [$hasOpenOrders, $hasOpenPositions] = await($exchange->fetchOpenOrdersAndPositions($this->options['symbol']));
-            if ($hasOpenOrders || $hasOpenPositions) {
-                sleep(time: getenv('COOL_DOWN_PERIOD'))->then(fn() => $this->execute());
-                return;
-            }
-
-            $userAccountBalance = await($exchange->fetchAccountBalance());
-            if (!$userAccountBalance) {
-                logger()->error("Insufficient account balance.");
+        async(function () use ($currentPrice, $exchange) {
+            try {
+                if ($this->isOrderInProgress) {
+                    return;
+                }
+    
+                $this->isOrderInProgress = true;
+    
+                [$hasOpenOrders, $hasOpenPositions] = await($exchange->fetchOpenOrdersAndPositions($this->options['symbol']));
+                if ($hasOpenOrders || $hasOpenPositions) {
+                    sleep(time: getenv('COOL_DOWN_PERIOD'))->then(fn() => $this->execute());
+                    return;
+                }
+    
+                $userAccountBalance = await($exchange->fetchAccountBalance());
+                if (!$userAccountBalance) {
+                    logger()->error("Insufficient account balance.");
+                    $this->isOrderInProgress = false;
+                    return;
+                }
+    
+                /**
+                 * Calculate the amount to trade based on the user's account balance
+                 * Formula: (accountBalance * (amountPercentage / 100)), leverage is automatically applied
+                 * e.g. (1000 * (5 / 100)) = 500
+                 */
+                $this->options['amount'] = round(($userAccountBalance * ($this->options['amountPercentage'] / 100)) / $currentPrice, 4);
+                $this->openPosition($exchange);
+                
+            } catch (Throwable $e) {
                 $this->isOrderInProgress = false;
-                return;
+                logger()->error($e->getMessage());
             }
-
-            /**
-             * Calculate the amount to trade based on the user's account balance
-             * Formula: (accountBalance * (amountPercentage / 100)), leverage is automatically applied
-             * e.g. (1000 * (5 / 100)) = 500
-             */
-            $this->options['amount'] = round(($userAccountBalance * ($this->options['amountPercentage'] / 100)) / $currentPrice, 4);
-            $this->openPosition($exchange);
-            
-        } catch (Throwable $e) {
-            $this->isOrderInProgress = false;
-            logger()->error($e->getMessage());
-        }
+        })();
     }
 
     public function startMonitoring(string $symbol, ExchangeManager $exchange): void
@@ -146,59 +148,6 @@ trait OrderPlacement
                 logger()->error($e->getMessage())
             );
     }
-
-    // private function executeMarketOrder(string $symbol, float $quantity): void
-    // {   
-    //     $this->isOrderInProgress = true;
-
-    //     $params = [
-    //         'symbol' => $symbol,
-    //         'side' => 'SELL',
-    //         'type' => 'MARKET',
-    //         'quantity' => $quantity,
-    //         'recvWindow' => 20000,
-    //         'timestamp' => time() * 1000
-    //     ];
-
-    //     $this->placeOrder->executeOrder($params)->then(
-    //         function () use ($symbol) {
-    //             $this->stopMonitoring();
-    //         },
-    //         function (Throwable $e) use ($symbol) {
-    //             logger()->error("Failed to execute order for {$symbol}: " . $e->getMessage());
-    //             $this->isOrderInProgress = false;
-    //         }
-    //     );
-    // }
-
-    // public function placeStopLossOrder(float $entryPrice, string $symbol, float $quantity): void
-    // {   
-    //     $this->isOrderInProgress = true;
-
-    //     $stopLossPrice = $entryPrice * 0.65;
-    //     $exchangeInfo = await(getExchangeInfo($symbol));
-    //     $precision = (int)$exchangeInfo['symbols'][0]['baseAssetPrecision'];
-    //     $adjustedPrice = round($stopLossPrice, $precision);
-
-    //     $params = [
-    //         'symbol' => $symbol,
-    //         'side' => 'SELL',
-    //         'type' => 'MARKET',
-    //         'quantity' => round($quantity, $precision),
-    //         'recvWindow' => 20000,
-    //         'timestamp' => time() * 1000
-    //     ];
-
-    //     $this->placeOrder->executeOrder($params)->then(
-    //         function ($response) use ($symbol, $adjustedPrice) {
-    //             logger()->info("Stop loss executed at {$adjustedPrice} for {$symbol}");
-    //             $this->stopMonitoring();
-    //         },
-    //         function (Throwable $e) use ($symbol) {
-    //             logger()->error("Failed to place stop loss for {$symbol}: " . $e->getMessage());
-    //         }
-    //     );
-    // }
 
     public function recoverOpenPositions(array $options, ExchangeManager $exchange): PromiseInterface
     {

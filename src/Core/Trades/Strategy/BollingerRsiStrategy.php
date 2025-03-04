@@ -3,12 +3,8 @@
 namespace Merchant\TradingBot\Core\Trades\Strategy;
 
 use Merchant\TradingBot\Core\Traits\OrderPlacement;
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\OrderBook;
 use Merchant\TradingBot\Core\Utils\ExchangeManager;
-use Psr\Log\LoggerInterface;
 use React\Promise\PromiseInterface;
-use React\Promise\Timer;
 
 use function React\Async\async;
 use function React\Async\await;
@@ -38,7 +34,6 @@ class BollingerRsiStrategy
     {
         $this->period = $this->options['period'] ?? $this->period;
         $this->stdDev = $this->options['stdDev'] ?? $this->stdDev;
-        // $this->init($this->options);
     }
 
     /**
@@ -84,6 +79,7 @@ class BollingerRsiStrategy
             $lastTwoPrices[1] > $lowerBand &&
             $currentPrice < $middleBand &&
             $isOversold;
+
 
             if ($tradeCondition) {
                 $this->placeOrder($currentPrice, $this->exchange);
