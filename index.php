@@ -23,7 +23,7 @@ $options = getopt("", [
     "contractType::",// Optional (default: PERPETUAL)
     "interval::",    // Optional (default: 5m)
     "limit::",       // Optional (default: 100)
-    "leverage:",     // Optional (default: 10)
+    "leverage:",     // Required
     "amountPercentage::", // Optional (default: 5)
 ]);
 
