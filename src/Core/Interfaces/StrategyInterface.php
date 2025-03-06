@@ -2,31 +2,27 @@
 
 namespace Merchant\TradingBot\Core\Interfaces;
 
+use React\Promise\PromiseInterface;
+
 interface StrategyInterface
-{
+{   
+    /**
+     * Bootstraps the strategy with configuration options.
+     */
+    public function boot(): void;
+
     /**
      * Execute the trade for a given cryptocurrency
      * 
      * @return void
      */
-    public function execute(): void;
+    public function execute(): PromiseInterface;
 
     /**
      * Processes trade logic when conditions are met
      * 
-     * @param float $currentPrice
      * @return void
      */
-    public function processTrade(float $currentPrice): void;
-
-    /**
-     * Checks for open orders and places a new order
-     * if conditions are met.
-     * 
-     * @param float $currentPrice
-     * @param float $quantityWithLeverage
-     * @return void
-     */
-    public function placeOrder(float $currentPrice, float $quantityWithLeverage): void;
+    public function processTrade(): void;
     
 }

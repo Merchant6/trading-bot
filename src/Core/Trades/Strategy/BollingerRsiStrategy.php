@@ -2,6 +2,7 @@
 
 namespace Merchant\TradingBot\Core\Trades\Strategy;
 
+use Merchant\TradingBot\Core\Interfaces\StrategyInterface;
 use Merchant\TradingBot\Core\Traits\OrderPlacement;
 use Merchant\TradingBot\Core\Utils\ExchangeManager;
 use React\Promise\PromiseInterface;
@@ -13,7 +14,7 @@ use function React\Promise\Timer\sleep;
 /**
  * Implements Bollinger Bands and RSI trading strategy.
  */
-class BollingerRsiStrategy
+class BollingerRsiStrategy implements StrategyInterface
 {
     use OrderPlacement;
 
