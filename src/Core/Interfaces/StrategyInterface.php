@@ -14,7 +14,7 @@ interface StrategyInterface
     /**
      * Execute the trade for a given cryptocurrency
      * 
-     * @return void
+     * @return PromiseInterface
      */
     public function execute(): PromiseInterface;
 
