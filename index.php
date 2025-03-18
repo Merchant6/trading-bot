@@ -18,18 +18,11 @@ $loop = Loop::get();
 
 $options = getopt("", [
     "symbol:",       // Required
-    // "side::",        // Optional (default: BUY)
-    // "ordertype::",   // Optional (default: MARKET)
-    // "contractType::",// Optional (default: PERPETUAL)
-    // "interval::",    // Optional (default: 5m)
-    // "limit::",       // Optional (default: 100)
-    // "leverage::",     // Optional (default: 10)
-    // "amountPercentage::", // Optional (default: 5)
 ]);
 
 
-if (!isset($options['symbol']) || !isset($options['leverage'])) {
-    die("Error: Missing required parameters --symbol or --leverage.\n");
+if (!isset($options['symbol'])) {
+    die("Error: Missing required parameter --symbol.\n");
 }
 
 $exchange = new ExchangeManager('binanceusdm', [
