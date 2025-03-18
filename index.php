@@ -28,9 +28,18 @@ $options = getopt("", [
 ]);
 
 
-// if (!isset($options['symbol'])) {
-//     die("Error: Missing required parameter --symbol.\n");
-// }
+if (!isset($options['symbol']) || !isset($options['leverage'])) {
+    die("Error: Missing required parameters --symbol or --leverage.\n");
+}
+
+$symbol = $options['symbol'] . ":USDT";
+$side = $options['side'] ?? 'BUY';
+$orderType = $options['ordertype'] ?? 'MARKET';
+$contractType = $options['contractType'] ?? 'PERPETUAL';
+$interval = $options['interval'] ?? '5m';
+$limit = isset($options['limit']) ? (int)$options['limit'] : 100;
+$leverage = $options['leverage'];
+$amountPercentage = isset($options['amountPercentage']) ? (int)$options['amountPercentage'] : 20;
 
 $exchange = new ExchangeManager('binanceusdm', [
     'apiKey' => getenv('BINANCE_API_KEY'),
