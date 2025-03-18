@@ -95,6 +95,48 @@ class ExchangeManager
     }
 
     /**
+     * Fetch max leverage for a specified symbol
+     * 
+     * @param string $symbol
+     * @return PromiseInterface
+     */
+    public function fetchMaxLeverage(string $symbol): PromiseInterface
+    {
+        return async(function () use($symbol) {
+            try {
+                $info = await($this->exchange->fetchMarketLeverageTiers($symbol));
+                return (int)max(array_map(
+                    fn($subArray) => $subArray['maxLeverage'] ?? 0, 
+                    $info
+                ));
+            } catch (Throwable $e) {
+                logger()->error("Error fetching max leverage: " . $e->getMessage());
+            }
+        })();
+    }
+
+    /**
+     * Fetch market leverage tiers for a specified symbol
+     * 
+     * @param string $symbol
+     * @return PromiseInterface
+     */
+    public function fetchMarketLeverageTiers(string $symbol): PromiseInterface
+    {
+        return async(function () use($symbol) {
+            try {
+                $info = await($this->exchange->fetchMarketLeverageTiers($symbol));
+                return array_map(
+                    fn($subArray) => $subArray['maxLeverage'] ?? 0, 
+                    $info
+                );
+            } catch (Throwable $e) {
+                logger()->error("Error fetching market leverage tiers: " . $e->getMessage());
+            }
+        })();
+    }
+
+    /**
      * Place an order
      * 
      * @param string $symbol

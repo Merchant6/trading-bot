@@ -18,28 +18,19 @@ $loop = Loop::get();
 
 $options = getopt("", [
     "symbol:",       // Required
-    "side::",        // Optional (default: BUY)
-    "ordertype::",   // Optional (default: MARKET)
-    "contractType::",// Optional (default: PERPETUAL)
-    "interval::",    // Optional (default: 5m)
-    "limit::",       // Optional (default: 100)
-    "leverage::",     // Optional (default: 10)
-    "amountPercentage::", // Optional (default: 5)
+    // "side::",        // Optional (default: BUY)
+    // "ordertype::",   // Optional (default: MARKET)
+    // "contractType::",// Optional (default: PERPETUAL)
+    // "interval::",    // Optional (default: 5m)
+    // "limit::",       // Optional (default: 100)
+    // "leverage::",     // Optional (default: 10)
+    // "amountPercentage::", // Optional (default: 5)
 ]);
 
 
-if (!isset($options['symbol'])) {
-    die("Error: Missing required parameters --symbol.\n");
-}
-
-$symbol = $options['symbol'] . ":USDT";
-$side = $options['side'] ?? 'BUY';
-$orderType = $options['ordertype'] ?? 'MARKET';
-$contractType = $options['contractType'] ?? 'PERPETUAL';
-$interval = $options['interval'] ?? '5m';
-$limit = isset($options['limit']) ? (int)$options['limit'] : 100;
-$leverage = isset($options['leverage']) ? (int)$options['leverage'] : 10;;
-$amountPercentage = isset($options['amountPercentage']) ? (int)$options['amountPercentage'] : 20;
+// if (!isset($options['symbol'])) {
+//     die("Error: Missing required parameter --symbol.\n");
+// }
 
 $exchange = new ExchangeManager('binanceusdm', [
     'apiKey' => getenv('BINANCE_API_KEY'),
@@ -51,11 +42,21 @@ $exchange = new ExchangeManager('binanceusdm', [
     ],
 ]);
 
-$exchange->getExchange()->set_sandbox_mode(true);
+$exchange->getExchange()->set_sandbox_mode(getenv('SANDBOX'));
+
+$symbol = $options['symbol'] . ":USDT";
+$side = getenv('SIDE');
+$orderType = getenv('ORDER_TYPE');
+$contractType = getenv('CONTRACT_TYPE');
+$interval = getenv('INTERVAL');
+$limit = getenv('LIMIT');
+$amountPercentage = getenv('AMOUNT_PERCENTAGE');
 
 if(await($exchange->hasSymbol($symbol)) === false) {
     die("Error: Symbol $symbol is not available on the exchange.\n");
 }
+
+$leverage = await($exchange->fetchMaxLeverage($symbol));
 
 $bbRsi = new BollingerRsiStrategy(
     $exchange,
