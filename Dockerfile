@@ -33,5 +33,9 @@ COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 # Install project dependencies
 RUN composer install --no-interaction --prefer-dist --optimize-autoloader
 
-# Keep the container alive with a shell (so you can run the bot manually)
+# Copy environment file and export variables
+RUN export $(grep -v '^#' /app/.env | xargs) && \
+    echo "Environment variables loaded"
+
+# Keep the container alive with a shell
 CMD ["tail", "-f", "/dev/null"]
