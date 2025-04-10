@@ -29,6 +29,7 @@ $exchange = new ExchangeManager('binanceusdm', [
     'apiKey' => getenv('BINANCE_API_KEY'),
     'secret' => getenv('BINANCE_SECRET_KEY'),
     'enableRateLimit' => getenv('RATE_LIMIT'),
+    'verbose' => true
     'options' => [
 	'defaultType' => 'future',
         'recvWindow' => 20000,
@@ -36,7 +37,7 @@ $exchange = new ExchangeManager('binanceusdm', [
     ],
 ]);
 
-$exchange->getExchange()->set_sandbox_mode(getenv('SANDBOX'));
+$exchange->getExchange()->set_sandbox_mode(false);
 
 $symbol = $options['symbol'] . ":USDT";
 $side = getenv('SIDE');
