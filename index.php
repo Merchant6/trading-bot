@@ -30,7 +30,6 @@ $exchange = new ExchangeManager('bitget', [
     'secret' => getenv('BITGET_SECRET_KEY'),
     'password' => getenv('BITGET_PASSWORD'), // Required for Bitget
     'enableRateLimit' => getenv('RATE_LIMIT'),
-    'verbose' => true,
     'options' => [
         'defaultType' => 'swap', // For Bitget Futures
         'recvWindow' => 20000,
