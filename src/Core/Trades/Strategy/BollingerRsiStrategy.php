@@ -88,6 +88,6 @@ class BollingerRsiStrategy implements StrategyInterface
                 sleep(time: 10)->then(fn() => $this->execute());
             }
 
-        }, $this->options['symbol']);
+        }, $this->options['symbol'], $this->options['interval']);
     }
 }

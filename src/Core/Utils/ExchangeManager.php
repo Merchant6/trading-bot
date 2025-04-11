@@ -258,7 +258,7 @@ class ExchangeManager
         })();
     }
 
-    public function fetchContinuousClosePrice(callable $callback, string $symbol, $timeframe = '5m', int|null $since = null, int|null $limit = null, $params = [])
+    public function fetchContinuousClosePrice(callable $callback, string $symbol, $timeframe = '1m', int|null $since = null, int|null $limit = null, $params = [])
     {   
         static $timer;
 
