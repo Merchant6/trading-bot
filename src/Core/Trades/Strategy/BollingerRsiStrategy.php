@@ -74,10 +74,11 @@ class BollingerRsiStrategy implements StrategyInterface
             $currentPrice = round(end($closePrices), 3);
             $lastTwoPrices = array_slice($closePrices, -2);
 
-            $tradeCondition = $currentPrice > $lowerBand && 
-            count($lastTwoPrices) === 2 && 
-            $lastTwoPrices[0] > $lowerBand && 
+            $tradeCondition = $currentPrice > $lowerBand &&
+            count($lastTwoPrices) === 2 &&
+            $lastTwoPrices[0] > $lowerBand &&
             $lastTwoPrices[1] > $lowerBand &&
+            $lastTwoPrices[1] > $lastTwoPrices[0] && // Price is reversing upward
             $currentPrice < $middleBand &&
             $isOversold;
 
