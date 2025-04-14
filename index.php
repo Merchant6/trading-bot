@@ -40,7 +40,7 @@ async(function () use ($options) {
 
     $exchange->getExchange()->set_sandbox_mode(false);
 
-    $side = getenv('SIDE');
+    $side = getenv('TRADE_SIDE');
     $orderType = getenv('ORDER_TYPE');
     $contractType = getenv('CONTRACT_TYPE');
     $interval = getenv('INTERVAL');
