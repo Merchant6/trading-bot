@@ -53,7 +53,7 @@ async(function () use ($options) {
     }
 
     $leverage = await($exchange->fetchMaxLeverage($symbol));
-    await($exchange->setLeverage((int)$leverage, $symbol));
+    await($exchange->setLeverage($symbol, (int)$leverage));
 
     $bbRsi = new BollingerRsiStrategy(
         $exchange,
