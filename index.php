@@ -9,68 +9,69 @@ use function React\Async\await;
 
 require __DIR__ . "/vendor/autoload.php";
 
-// Initializing Dotenv
+// Load environment
 $dotenv = Dotenv\Dotenv::createUnsafeImmutable(__DIR__);
 $dotenv->load();
 
-// Initializing the event loop
-$loop = Loop::get();
-
-$options = getopt("", [
-    "symbol:",       // Required
-]);
-
+// CLI options
+$options = getopt("", ["symbol:"]);
 if (!isset($options['symbol'])) {
     die("Error: Missing required parameter --symbol.\n");
 }
 
-// Using Bitget Futures
-$exchange = new ExchangeManager('bitget', [
-    'apiKey' => getenv('BITGET_API_KEY'),
-    'secret' => getenv('BITGET_SECRET_KEY'),
-    'password' => getenv('BITGET_PASSWORD'), // Required for Bitget
-    'enableRateLimit' => getenv('RATE_LIMIT'),
-    'options' => [
-        'defaultType' => 'swap', // For Bitget Futures
-        'recvWindow' => 20000,
-        'marginType' => 'cross',
-    ],
-]);
+// Get event loop
+$loop = Loop::get();
 
-$exchange->getExchange()->set_sandbox_mode(false);
+async(function () use ($options) {
 
-// Bitget symbol format: BTC/USDT:USDT
-$symbol = $options['symbol'] . "/USDT:USDT";
+    $symbol = $options['symbol'] . "/USDT:USDT";
 
-$side = getenv('SIDE');
-$orderType = getenv('ORDER_TYPE');
-$contractType = getenv('CONTRACT_TYPE');
-$interval = getenv('INTERVAL');
-$limit = getenv('LIMIT');
-$amountPercentage = getenv('AMOUNT_PERCENTAGE');
+    $exchange = new ExchangeManager('bitget', [
+        'apiKey' => getenv('BITGET_API_KEY'),
+        'secret' => getenv('BITGET_SECRET_KEY'),
+        'password' => getenv('BITGET_PASSWORD'),
+        'enableRateLimit' => getenv('RATE_LIMIT'),
+        'options' => [
+            'defaultType' => 'swap',
+            'recvWindow' => 20000,
+            'marginType' => 'cross',
+        ],
+    ]);
 
-if (await($exchange->hasSymbol($symbol)) === false) {
-    die("Error: Symbol $symbol is not available on the exchange.\n");
-}
+    $exchange->getExchange()->set_sandbox_mode(false);
 
-$leverage = await($exchange->fetchMaxLeverage($symbol));
-await($exchange->getExchange()->setLeverage($leverage, $symbol));
+    $side = getenv('SIDE');
+    $orderType = getenv('ORDER_TYPE');
+    $contractType = getenv('CONTRACT_TYPE');
+    $interval = getenv('INTERVAL');
+    $limit = getenv('LIMIT');
+    $amountPercentage = getenv('AMOUNT_PERCENTAGE');
 
-$bbRsi = new BollingerRsiStrategy(
-    $exchange,
-    [
-        'symbol' => $symbol,
-        'side' => $side,
-        'type' => $orderType,
-        'contractType' => $contractType,
-        'interval' => $interval,
-        'limit' => $limit,
-        'leverage' => $leverage,
-        'amountPercentage' => $amountPercentage
-    ]
-);
+    if (await($exchange->hasSymbol($symbol)) === false) {
+        echo "Error: Symbol $symbol is not available on the exchange.\n";
+        return;
+    }
 
-async(fn () => await($bbRsi->execute()))();
+    $leverage = await($exchange->fetchMaxLeverage($symbol));
+    await($exchange->getExchange()->setLeverage($leverage, $symbol));
 
-// Run the event loop
+    $bbRsi = new BollingerRsiStrategy(
+        $exchange,
+        [
+            'symbol' => $symbol,
+            'side' => $side,
+            'type' => $orderType,
+            'contractType' => $contractType,
+            'interval' => $interval,
+            'limit' => $limit,
+            'leverage' => $leverage,
+            'amountPercentage' => $amountPercentage
+        ]
+    );
+
+    await($bbRsi->execute());
+
+})();
+
+// Run the loop
 $loop->run();
