@@ -109,31 +109,28 @@ trait OrderPlacement
     }
 
     public function openPosition(ExchangeManager $exchange): void
-    {   
+    {
         $params = [
             'posSide' => $this->options['side'] === 'BUY' ? 'long' : 'short',
             'oneWayMode' => true,
         ];
 
-        $exchange->setLeverage($this->options['symbol'], $this->options['leverage'])
-            ->then(fn() => 
-                $exchange->placeOrder(
-                    $this->options['symbol'], 
-                    $this->options['type'], 
-                    $this->options['side'], 
-                    $this->options['amount'],
-                    params: $params
-                )
+        $exchange->placeOrder(
+            $this->options['symbol'],
+            $this->options['type'],
+            $this->options['side'],
+            $this->options['amount'],
+            params: $params
+        )
+        ->then(fn() =>
+            $this->startMonitoring(
+                $this->options['symbol'],
+                $exchange
             )
-            ->then(fn() => 
-                $this->startMonitoring(
-                    $this->options['symbol'], 
-                    $exchange
-                )
-            )
-            ->catch(fn(Throwable $e) => 
-                logger()->error($e->getMessage())
-            );
+        )
+        ->catch(fn(Throwable $e) =>
+            logger()->error($e->getMessage())
+        );
     }
 
     public function takeProfitStopLossOrder(ExchangeManager $exchange)
