@@ -31,6 +31,7 @@ async(function () use ($options) {
         'secret' => getenv('BITGET_SECRET_KEY'),
         'password' => getenv('BITGET_PASSWORD'),
         'enableRateLimit' => getenv('RATE_LIMIT'),
+        //'verbose' => true,
         'options' => [
             'defaultType' => 'swap',
             'recvWindow' => 20000,
@@ -51,6 +52,8 @@ async(function () use ($options) {
         echo "Error: Symbol $symbol is not available on the exchange.\n";
         return;
     }
+
+    await($exchange->getExchange()->setPositionMode(false, $symbol));
 
     $leverage = await($exchange->fetchMaxLeverage($symbol));
     await($exchange->setLeverage($symbol, (int)$leverage));
