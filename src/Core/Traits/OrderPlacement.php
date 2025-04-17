@@ -44,12 +44,21 @@ trait OrderPlacement
                     return;
                 }
     
-                /**
-                 * Calculate the amount to trade based on the user's account balance
-                 * Formula: (accountBalance * (amountPercentage / 100)), leverage is automatically applied
-                 * e.g. (1000 * (5 / 100)) = 500
-                 */
-                $this->options['amount'] = round(($userAccountBalance * ($this->options['amountPercentage'] / 100)) / $currentPrice, 4);
+                // Calculate base amount (collateral)
+                $baseAmount = $userAccountBalance * ($this->options['amountPercentage'] / 100);
+                if ($baseAmount < 5) {
+                    logger()->error("Base Amount cannot be less than 5 USDT.");
+                    $this->isOrderInProgress = false;
+                    return;
+                }
+                
+                // Convert to quantity (number of contracts)
+                $quantity = round($baseAmount / $currentPrice, 4);
+                if (isset($this->options['leverage']) && $this->options['leverage'] > 0) {
+                    $quantity = $quantity * $this->options['leverage'];
+                }
+                
+                $this->options['amount'] = round($quantity, 4);
                 $this->openPosition($exchange);
                 
             } catch (Throwable $e) {

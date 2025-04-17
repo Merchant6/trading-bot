@@ -321,9 +321,46 @@ class ExchangeManager
     {
         return async(function () use ($symbol, $limit, $since, $params) {
             try {
-                return await($this->exchange->fetch_open_orders($symbol, $limit, $since, $params));
+                return await($this->exchange->fetch_open_orders(symbol: $symbol, limit: $limit, since: $since, params:$params));
             } catch (Throwable $e) {
                 logger()->error("Error fetching open orders for {$symbol}: " . $e->getMessage());
+            }
+        })();
+    }
+    
+    /**
+     * Fetch closed orders
+     * 
+     * @param string $symbol
+     * @param mixed $limit
+     * @param mixed $since
+     * @param array $params
+     * @return PromiseInterface
+     */
+    public function fetchClosedOrders(string $symbol, ?int $limit = null, ?int $since = null, array $params = []): PromiseInterface
+    {
+        return async(function () use ($symbol, $limit, $since, $params) {
+            try {
+                return await($this->exchange->fetch_closed_orders(symbol: $symbol, limit: $limit, since: $since, params:$params));
+            } catch (Throwable $e) {
+                logger()->error("Error fetching closed orders: " . $e->getMessage());
+            }
+        })();
+    }
+
+    public function fetchSellOrders(string $symbol, ?int $limit = null, ?int $since = null, array $params = []): PromiseInterface
+    {
+        return async(function () use ($symbol, $limit, $since, $params) {
+            try {
+                $orders = await($this->fetchClosedOrders(symbol: $symbol, limit: $limit, since: $since, params:$params));
+                $sellOrders = array_filter($orders, function ($order) {
+                    return $order['status'] === 'closed' && $order['side'] === 'sell';
+                });
+    
+                return array_values($sellOrders);
+                
+            } catch (Throwable $e) {
+                logger()->error("Error fetching sell orders: " . $e->getMessage());
             }
         })();
     }
