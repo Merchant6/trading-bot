@@ -14,17 +14,18 @@ $dotenv = Dotenv\Dotenv::createUnsafeImmutable(__DIR__);
 $dotenv->load();
 
 // CLI options
-$options = getopt("", ["symbol:"]);
-if (!isset($options['symbol'])) {
-    die("Error: Missing required parameter --symbol.\n");
-}
+// $options = getopt("", ["symbol:"]);
+// if (!isset($options['symbol'])) {
+//     die("Error: Missing required parameter --symbol.\n");
+// }
 
 // Get event loop
 $loop = Loop::get();
 
-async(function () use ($options) {
+async(function ()  {
 
-    $symbol = $options['symbol'] . "/USDT:USDT";
+    //$symbol = $options['symbol'] . "/USDT:USDT";
+    $symbol = "SBTC/SUSDT:SUSDT";
 
     $exchange = new ExchangeManager('bitget', [
         'apiKey' => getenv('BITGET_API_KEY'),
@@ -39,7 +40,7 @@ async(function () use ($options) {
         ],
     ]);
 
-    $exchange->getExchange()->set_sandbox_mode(false);
+    $exchange->getExchange()->set_sandbox_mode(true);
 
     $side = getenv('TRADE_SIDE');
     $orderType = getenv('ORDER_TYPE');
@@ -48,6 +49,8 @@ async(function () use ($options) {
     $limit = getenv('LIMIT');
     $amountPercentage = getenv('AMOUNT_PERCENTAGE');
 
+    //logger()->info(json_encode(await($exchange->getExchange()->load_markets()), JSON_PRETTY_PRINT));
+
     if (await($exchange->hasSymbol($symbol)) === false) {
         echo "Error: Symbol $symbol is not available on the exchange.\n";
         return;
@@ -55,7 +58,8 @@ async(function () use ($options) {
 
     await($exchange->getExchange()->setPositionMode(false, $symbol));
 
-    $leverage = await($exchange->fetchMaxLeverage($symbol));
+    // $leverage = await($exchange->fetchMaxLeverage($symbol));
+    $leverage = 50;
     await($exchange->setLeverage($symbol, (int)$leverage));
 
     $bbRsi = new BollingerRsiStrategy(

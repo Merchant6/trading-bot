@@ -37,7 +37,7 @@ trait OrderPlacement
                     return;
                 }
     
-                $userAccountBalance = await($exchange->fetchAccountBalance());
+                $userAccountBalance = await($exchange->fetchAccountBalance('SUSDT'));
                 if (!$userAccountBalance) {
                     logger()->error("Insufficient account balance.");
                     $this->isOrderInProgress = false;
@@ -87,6 +87,7 @@ trait OrderPlacement
             $quantity = (float)array_column($positions, 'contracts')[0];
             $entryPrice = (float)array_column($positions, 'entryPrice')[0];
             
+            logger()->info("Current profit percentage: {$profitPercentage}%");
             if(!isset($this->options['amount']) || $this->options['amount'] === null){
                 $this->options['amount'] = $quantity;
             }
