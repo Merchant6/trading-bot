@@ -87,7 +87,6 @@ trait OrderPlacement
             $quantity = (float)array_column($positions, 'contracts')[0];
             $entryPrice = (float)array_column($positions, 'entryPrice')[0];
             
-            logger()->info("Current profit percentage: {$profitPercentage}%");
             if(!isset($this->options['amount']) || $this->options['amount'] === null){
                 $this->options['amount'] = $quantity;
             }
