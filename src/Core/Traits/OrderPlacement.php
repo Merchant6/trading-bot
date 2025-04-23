@@ -37,7 +37,7 @@ trait OrderPlacement
                     return;
                 }
     
-                $userAccountBalance = await($exchange->fetchAccountBalance('SUSDT'));
+                $userAccountBalance = await($exchange->fetchAccountBalance());
                 if (!$userAccountBalance) {
                     logger()->error("Insufficient account balance.");
                     $this->isOrderInProgress = false;
