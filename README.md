@@ -1,11 +1,15 @@
 # ReactPHP Trading Bot
 
-A real-time, asynchronous cryptocurrency trading bot built with ReactPHP. This bot integrates with Binance Futures to automate trading strategies like Bollinger Bands and RSI. The bot supports high-performance, non-blocking operations for optimal trading execution.
+A real-time, asynchronous cryptocurrency trading platform built with ReactPHP. It supports event-driven market polling, modular strategy signals, risk-managed order execution, paper trading, a REST API, and a React.js dashboard.
 
 ## Features
 
 - **Asynchronous Execution**: Built using ReactPHP for real-time, non-blocking operations.
-- **Customizable Strategies**: Implement and modify trading strategies easily, such as Bollinger Bands and RSI.
+- **Customizable Strategies**: Strategy registry with Bollinger RSI, moving-average crossover, MACD, RSI mean reversion, breakout, and volume spike strategies.
+- **Risk Controls**: Configurable risk per trade, max position size, max leverage, take profit, stop loss, trailing stop value, cooldown, and daily loss limit settings.
+- **Paper Trading Mode**: Enabled by default so signals can be reviewed before live order placement.
+- **React Dashboard**: Frontend controls for bot state, selected strategy, symbol, interval, risk settings, and event feed.
+- **REST API**: ReactPHP API server for dashboard and operational integrations.
 - **Order and Position Management**: Ensures no duplicate orders or positions by checking the current state of orders and positions for a trading pair.
 - **Logger Integration**: All activities are logged for transparency and tracking.
 - **Binance Futures API**: Supports automated trading through the Binance Futures API.
@@ -15,6 +19,7 @@ A real-time, asynchronous cryptocurrency trading bot built with ReactPHP. This b
 
 - PHP 8.2 or higher
 - Composer (dependency manager)
+- Node.js 20+ for the React dashboard
 - Binance Futures API Key and Secret
 - ReactPHP (installed via Composer)
 - Basic knowledge of cryptocurrency trading and APIs
@@ -45,6 +50,11 @@ Create a `.env` file in the root directory and add your Binance API keys:
 ```env
 BINANCE_API_KEY=your_api_key
 BINANCE_API_SECRET=your_api_secret
+BINANCE_SECRET_KEY=your_api_secret
+BINANCE_API_URL=https://fapi.binance.com
+PRICE_FETCH_INTERVAL=5
+COOL_DOWN_PERIOD=30
+PAPER_TRADING=true
 ```
 
 ### Step 4: Run the Bot
@@ -52,20 +62,52 @@ BINANCE_API_SECRET=your_api_secret
 Start the bot with the following command:
 
 ```bash
-php index.php
+php index.php --symbol=BTCUSDT --leverage=5 --strategy=bollinger-rsi --paper=true
 ```
 
-The bot will begin executing the configured strategy using the Binance Futures API.
+The bot will begin executing the configured strategy. Paper trading is enabled by default.
+
+### Step 5: Run the API
+
+```bash
+composer api
+```
+
+The API runs at `http://127.0.0.1:8080` by default.
+
+### Step 6: Run the React Dashboard
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+The dashboard runs at `http://127.0.0.1:5173`.
 
 ## Strategies
 
-### Bollinger Bands Strategy
+### Available Strategies
 
-This bot uses the Bollinger Bands strategy by default. It places buy orders when the price is near the lower band and sell orders near the upper band.
+- `bollinger-rsi`
+- `ma-crossover`
+- `macd`
+- `rsi-mean-reversion`
+- `breakout`
+- `volume-spike`
 
-### Other Strategies
+To add new strategies, create a class in `src/Core/Trades/Strategy`, implement `StrategyInterface`, and register it in `config/strategies.php`.
 
-To add new strategies, create a new class in the `src/Core/Trades/Strategy` directory, implement the strategy logic, and integrate it into the bot's execution flow.
+## API Endpoints
+
+- `GET /api/status`
+- `GET /api/strategies`
+- `GET /api/config`
+- `GET /api/events`
+- `POST /api/bot/start`
+- `POST /api/bot/stop`
+
+The API stores runtime state in `storage/trading-state.json`.
 
 ## Order and Position Management
 
@@ -83,8 +125,12 @@ All activities, such as order placements and errors, are logged in the `storage/
 This bot includes unit and feature tests located in the `tests` directory. To run the tests, use PHPUnit:
 
 ```bash
-php vendor/bin/phpunit
+composer test
 ```
+
+## Safety Notes
+
+Live cryptocurrency trading can lose money quickly. Keep `PAPER_TRADING=true` until strategy behavior, sizing, and exchange credentials are verified. Use low leverage and testnet credentials before enabling live execution.
 
 ## Contributing
 

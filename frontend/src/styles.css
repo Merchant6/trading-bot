@@ -1,0 +1,311 @@
+:root {
+  color: #16201f;
+  background: #eef2ef;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input,
+select {
+  font: inherit;
+}
+
+.app-shell {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.topbar {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  margin: 0 auto 20px;
+  max-width: 1280px;
+}
+
+h1,
+h2,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: 28px;
+  font-weight: 750;
+}
+
+h2 {
+  font-size: 15px;
+  font-weight: 750;
+}
+
+.topbar p {
+  color: #61706c;
+  margin-top: 2px;
+}
+
+.status-pill {
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 96px;
+  padding: 8px 12px;
+  text-align: center;
+}
+
+.status-pill.running {
+  background: #d8f6e2;
+  color: #126834;
+}
+
+.status-pill.stopped {
+  background: #f5ddd4;
+  color: #8a321f;
+}
+
+.alert {
+  background: #fde7de;
+  border: 1px solid #f0b19c;
+  border-radius: 8px;
+  color: #80331f;
+  margin: 0 auto 16px;
+  max-width: 1280px;
+  padding: 10px 12px;
+}
+
+.workspace {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: minmax(280px, 360px) repeat(2, minmax(260px, 1fr));
+  margin: 0 auto;
+  max-width: 1280px;
+}
+
+.panel {
+  background: #ffffff;
+  border: 1px solid #d9e0dc;
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.panel-heading {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.controls {
+  display: grid;
+  gap: 14px;
+}
+
+label {
+  display: grid;
+  gap: 6px;
+}
+
+label span,
+.metric span {
+  color: #61706c;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+input,
+select {
+  background: #f8faf8;
+  border: 1px solid #cbd6d1;
+  border-radius: 6px;
+  color: #16201f;
+  height: 40px;
+  padding: 0 10px;
+  width: 100%;
+}
+
+.button-row {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: 1fr 1fr;
+  margin-top: 4px;
+}
+
+button {
+  background: #f8faf8;
+  border: 1px solid #c6d0cc;
+  border-radius: 6px;
+  color: #1e2d2a;
+  cursor: pointer;
+  font-weight: 750;
+  height: 40px;
+  padding: 0 14px;
+}
+
+button.primary {
+  background: #1f7a58;
+  border-color: #1f7a58;
+  color: #ffffff;
+}
+
+button.ghost {
+  background: transparent;
+  height: 32px;
+}
+
+.mode-toggle {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.switch {
+  display: inline-block;
+  height: 24px;
+  position: relative;
+  width: 44px;
+}
+
+.switch input {
+  opacity: 0;
+  position: absolute;
+}
+
+.switch span {
+  background: #b8c5bf;
+  border-radius: 999px;
+  cursor: pointer;
+  inset: 0;
+  position: absolute;
+}
+
+.switch span::before {
+  background: #ffffff;
+  border-radius: 50%;
+  content: "";
+  height: 18px;
+  left: 3px;
+  position: absolute;
+  top: 3px;
+  transition: transform 0.18s ease;
+  width: 18px;
+}
+
+.switch input:checked + span {
+  background: #1f7a58;
+}
+
+.switch input:checked + span::before {
+  transform: translateX(20px);
+}
+
+.metric {
+  align-items: center;
+  border-bottom: 1px solid #edf1ef;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 42px;
+}
+
+.metric:last-child {
+  border-bottom: 0;
+}
+
+.metric strong {
+  font-size: 16px;
+}
+
+.strategy-panel {
+  min-height: 230px;
+}
+
+.chart-panel {
+  grid-column: 1 / -1;
+  min-height: 520px;
+}
+
+.chart-symbol {
+  color: #61706c;
+  font-size: 13px;
+  font-weight: 750;
+}
+
+.chart-frame {
+  border: 0;
+  border-radius: 6px;
+  display: block;
+  height: 460px;
+  width: 100%;
+}
+
+.event-panel {
+  grid-column: 1 / -1;
+}
+
+.event-list {
+  display: grid;
+  gap: 10px;
+  max-height: 430px;
+  overflow: auto;
+}
+
+.event-row {
+  border: 1px solid #e2e8e5;
+  border-radius: 8px;
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+}
+
+.event-row div {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.event-row span {
+  color: #6d7a76;
+  font-size: 12px;
+}
+
+pre {
+  background: #f6f8f7;
+  border-radius: 6px;
+  margin: 0;
+  overflow: auto;
+  padding: 10px;
+  white-space: pre-wrap;
+}
+
+.empty {
+  color: #6d7a76;
+}
+
+@media (max-width: 900px) {
+  .app-shell {
+    padding: 16px;
+  }
+
+  .topbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .workspace {
+    grid-template-columns: 1fr;
+  }
+}

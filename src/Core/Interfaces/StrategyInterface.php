@@ -12,12 +12,16 @@ interface StrategyInterface
     public function execute(): void;
 
     /**
+     * Returns a stable strategy identifier.
+     */
+    public function name(): string;
+
+    /**
      * Processes trade logic when conditions are met
      * 
-     * @param float $currentPrice
      * @return void
      */
-    public function processTrade(float $currentPrice): void;
+    public function processTrade(): void;
 
     /**
      * Checks for open orders and places a new order
@@ -27,6 +31,6 @@ interface StrategyInterface
      * @param float $quantityWithLeverage
      * @return void
      */
-    public function placeOrder(float $currentPrice, float $quantityWithLeverage): void;
+    public function placeOrder(float $currentPrice, float $quantityWithLeverage = 0): void;
     
 }

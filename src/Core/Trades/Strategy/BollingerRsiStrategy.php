@@ -2,88 +2,72 @@
 
 namespace Merchant\TradingBot\Core\Trades\Strategy;
 
-use Merchant\TradingBot\Core\Traits\OrderPlacement;
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\OrderBook;
-use Psr\Log\LoggerInterface;
-use React\Promise\Timer;
-
-use function React\Promise\Timer\sleep;
+use Merchant\TradingBot\Core\Trading\IndicatorCalculator;
+use Merchant\TradingBot\Core\Trading\StrategySignal;
 
 /**
  * Implements Bollinger Bands and RSI trading strategy.
  */
-class BollingerRsiStrategy
+class BollingerRsiStrategy extends AbstractKlineStrategy
 {
-    use OrderPlacement;
-
     private int $period = 20;
-    private int $stdDev = 2;
-    
-    public function __construct(
-        private ContractKLineData $contractKLineData,
-        public array $options = []
-    ) {
-        $this->boot();
-    }
+    private float $stdDev = 2.0;
 
     /**
      * Bootstraps the strategy with configuration options.
      */
     public function boot(): void
     {
-        $this->period = $this->options['period'] ?? $this->period;
-        $this->stdDev = $this->options['stdDev'] ?? $this->stdDev;
-        $this->init($this->options);
+        parent::boot();
+
+        $this->period = (int)$this->option('period', $this->period);
+        $this->stdDev = (float)$this->option('stdDev', $this->stdDev);
     }
 
-    /**
-     * Main entry point for executing the strategy.
-     */
-    public function execute(): void
-    {   
-        $this->recoverOpenPositions($this->options);
+    public function name(): string
+    {
+        return 'bollinger-rsi';
+    }
 
-        if ($this->isOrderInProgress) {
-            return;
+    public function generateSignal(array $klineData): StrategySignal
+    {
+        $closePrices = $this->closePrices($klineData);
+        $rsiPeriod = (int)$this->option('rsiPeriod', 14);
+
+        if (count($closePrices) < max($this->period, $rsiPeriod) + 2) {
+            return StrategySignal::hold('Not enough candles for Bollinger RSI.');
         }
 
-        $this->processTrade();
-    }
+        $bands = IndicatorCalculator::bollinger($closePrices, $this->period, $this->stdDev);
+        $rsi = IndicatorCalculator::rsi($closePrices, $rsiPeriod);
+        $lowerBand = (float)end($bands['lower']);
+        $middleBand = (float)end($bands['middle']);
+        $currentPrice = (float)end($closePrices);
+        $lastTwoPrices = array_slice($closePrices, -2);
+        $currentRsi = (float)end($rsi);
+        $oversold = (float)$this->option('oversold', 30);
 
-    /**
-     * Process trade logic based on Bollinger Bands and RSI conditions.
-     */
-    public function processTrade(): void
-    {
-        $this->contractKLineData->details(function (array $data) {
-            $closePrices = array_column($data, 'close_price');
-            
-            $bands = getBollingerBands(
-                $closePrices, 
-                $this->period, 
-                $this->stdDev
-            );
-            
-            $isOversold = isRsiOversold($closePrices);
+        $tradeCondition = $currentPrice > $lowerBand
+            && count($lastTwoPrices) === 2
+            && $lastTwoPrices[0] > $lowerBand
+            && $lastTwoPrices[1] > $lowerBand
+            && $currentPrice < $middleBand
+            && $currentRsi <= $oversold;
 
-            $lowerBand = round(end($bands['LowerBand']), 3);
-            $middleBand = round(end($bands['MiddleBand']), 3);
-            $currentPrice = round(end($closePrices), 3);
-            $lastTwoPrices = array_slice($closePrices, -2);
+        if ($tradeCondition) {
+            return StrategySignal::buy('Price recovered above lower Bollinger band while RSI is oversold.', 0.74, [
+                'price' => round($currentPrice, 6),
+                'lowerBand' => round($lowerBand, 6),
+                'middleBand' => round($middleBand, 6),
+                'rsi' => round($currentRsi, 3),
+            ]);
+        }
 
-            $tradeCondition = $currentPrice > $lowerBand && 
-            count($lastTwoPrices) === 2 && 
-            $lastTwoPrices[0] > $lowerBand && 
-            $lastTwoPrices[1] > $lowerBand &&
-            $currentPrice < $middleBand &&
-            $isOversold;
-
-            if ($tradeCondition) {
-                $this->placeOrder($currentPrice);
-            } else {
-                sleep(time: 10)->then(fn() => $this->execute());
-            }
-        });
+        return StrategySignal::hold('Bollinger RSI entry conditions are not aligned.', [
+            'price' => round($currentPrice, 6),
+            'lowerBand' => round($lowerBand, 6),
+            'middleBand' => round($middleBand, 6),
+            'rsi' => round($currentRsi, 3),
+        ]);
     }
 }

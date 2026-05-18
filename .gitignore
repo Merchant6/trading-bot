@@ -1,5 +1,7 @@
 /vendor
 /storage/logs/app.log
+/storage/trading-state.json
+/storage/*.json
 /.fleet
 /.idea
 /.vscode
@@ -12,3 +14,15 @@
 /.idea
 /.vscode
 /.zed
+
+# Frontend
+/frontend/node_modules
+/frontend/dist
+/frontend/.vite
+/frontend/.env
+/frontend/.env.local
+/frontend/.env.*.local
+
+# Accidental root npm artifacts
+/node_modules
+/package-lock.json

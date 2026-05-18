@@ -1,9 +1,9 @@
 <?php
 
-use Merchant\TradingBot\Core\Trades\Strategy\BollingerRsiStrategy;
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\Indicators\Rsi;
+use Merchant\TradingBot\Core\Trading\Config;
+use Merchant\TradingBot\Core\Trading\StrategyRegistry;
+use Merchant\TradingBot\Core\Trading\TradingStateRepository;
 use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\ContractKLineData;
-use Merchant\TradingBot\Core\Utils\Cryptocurrency\MarketData\OrderBook;
 use React\EventLoop\Loop;
 
 require __DIR__ . "/vendor/autoload.php";
@@ -17,12 +17,14 @@ $loop = Loop::get();
 
 $options = getopt("", [
     "symbol:",       // Required
+    "strategy::",    // Optional
     "side::",        // Optional (default: BUY)
     "ordertype::",   // Optional (default: MARKET)
     "contractType::",// Optional (default: PERPETUAL)
     "interval::",    // Optional (default: 5m)
     "limit::",       // Optional (default: 100)
     "leverage:",     // Required
+    "paper::",       // Optional (default from config)
 ]);
 
 if (!isset($options['symbol']) || !isset($options['leverage'])) {
@@ -36,33 +38,43 @@ $contractType = $options['contractType'] ?? 'PERPETUAL';
 $interval = $options['interval'] ?? '5m';
 $limit = isset($options['limit']) ? (int)$options['limit'] : 100;
 $leverage = (int) $options['leverage'];
+$strategyName = $options['strategy'] ?? Config::value('strategies', 'default', 'bollinger-rsi');
+$paperTrading = array_key_exists('paper', $options)
+    ? filter_var($options['paper'], FILTER_VALIDATE_BOOLEAN)
+    : Config::value('trading', 'paper_trading', true);
 
-$orderBook = new OrderBook($loop, [
-    'limit' => 100,
-    'symbol' => 'BTCUSDT',
-    'minPriceDiff' => 100
-]);
-
-$Kline = new ContractKLineData($loop, [
+$kline = new ContractKLineData($loop, [
         'pair' => $symbol, 
         'contractType' => $contractType, 
         'interval' => $interval, 
-        'limit' => 100
+        'limit' => $limit
     ]
 );
 
+$state = new TradingStateRepository();
+$state->update([
+    'running' => true,
+    'paper_trading' => $paperTrading,
+    'strategy' => $strategyName,
+    'symbol' => $symbol,
+    'interval' => $interval,
+    'updated_at' => date(DATE_ATOM),
+]);
 
-$bbRsi = new BollingerRsiStrategy(
-    $Kline,
+$registry = new StrategyRegistry();
+$strategy = $registry->create(
+    $strategyName,
+    $kline,
     [
         'symbol' => $symbol,
         'side' => $side,
         'type' => $orderType,
-        'leverage' => $leverage
+        'leverage' => $leverage,
+        'paper_trading' => $paperTrading,
     ]
 );
 
-$bbRsi->execute();
+$strategy->execute();
 
 // Run the event loop
 $loop->run();

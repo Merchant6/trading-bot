@@ -28,6 +28,8 @@
         "php-mock/php-mock": "^2.5"
     },
     "scripts": {
-        "test": "phpunit"
+        "test": "phpunit",
+        "api": "php bin/api-server.php",
+        "bot": "php index.php"
     }
 }
